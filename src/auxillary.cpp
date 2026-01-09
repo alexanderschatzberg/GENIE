@@ -1,4 +1,5 @@
 #include "auxillary.h"
+#include "profiler.h"
 
 #include <iostream>
 #include <fstream>
@@ -10,6 +11,7 @@ using namespace std;
 // Inputs: Number of individuals, filename
 // Return number of environments
 int read_env (int Nind, std::string filename){
+	ScopedTimer timer("io_read_environment");
 	ifstream ifs(filename.c_str(), ios::in);
 	if (!ifs.is_open()){
 		cerr << "ERROR: Error reading file with environmental variables : "<< filename <<endl;
@@ -75,6 +77,7 @@ int read_env (int Nind, std::string filename){
 // Inputs: Number of individuals, filename
 // Return total number of covariates (covariates specified in covariate file [ + environmental variables] [ + intercept])
 int read_cov (int Nind, std::string filename) {
+	ScopedTimer timer("io_read_covariate");
 	ifstream ifs(filename.c_str(), ios::in);
 	if (!ifs.is_open()){
 		cerr << "ERROR: Error reading covariate file : "<< filename <<endl;
@@ -199,6 +202,7 @@ int read_cov (int Nind, std::string filename) {
 // Read pheno file
 // Inputs: Number of individuals, filename
 void read_pheno(int Nind, std::string filename){
+	ScopedTimer timer("io_read_phenotype");
 	ifstream ifs(filename.c_str(), ios::in); 
 
 	if (!ifs.is_open()){
@@ -272,6 +276,7 @@ int count_pheno(std::string filename){
 }
 
 void read_annot (string filename) {
+	ScopedTimer timer("io_read_annotation");
 	ifstream inp(filename.c_str());
 	if (!inp.is_open()){
 		cout <<"WARNING: no annotation file provided. All SNPs will be assigned to a single annotation" << endl;	

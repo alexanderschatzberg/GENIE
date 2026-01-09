@@ -76,6 +76,7 @@ set(genie_lib_header
 		include/functions.h
 		include/vectorfn.h
 		include/statsfn.h
+		include/profiler.h
 )
 
 set(genie_lib_source
@@ -85,6 +86,7 @@ set(genie_lib_source
         src/matmult.cpp
         src/storage.cpp
 		src/functions.cpp
+		src/profiler.cpp
 )
 
 add_library(genie_lib STATIC ${genie_lib_header} ${genie_lib_source})
@@ -115,6 +117,9 @@ option(ENABLE_ASSERTIONS "Enable libstdc++ debug assertions" OFF)
 
 # Eigen can fill uninitialized fixed-size matrices with NaNs (very useful)
 option(ENABLE_EIGEN_NAN_INIT "Initialize Eigen matrices to NaN (debug aid)" OFF)
+
+# Internal profiling instrumentation
+option(GENIE_PROFILE "Enable internal profiling instrumentation" OFF)
 
 # Disallow illegal combos
 if (ENABLE_TSAN AND (ENABLE_ASAN OR ENABLE_UBSAN))
@@ -161,6 +166,16 @@ if (ENABLE_FP_TRAPS)
   foreach(t genie_lib GENIE)
     target_compile_definitions(${t} PRIVATE ENABLE_FP_TRAPS)
   endforeach()
+endif()
+
+if (GENIE_PROFILE)
+  # Enable profiling instrumentation
+  foreach(t genie_lib GENIE)
+    target_compile_definitions(${t} PRIVATE GENIE_PROFILE)
+  endforeach()
+  # Keep optimization, but preserve frame pointers so external profilers work
+  add_compile_options(-fno-omit-frame-pointer)
+  message(STATUS "Internal profiling instrumentation enabled")
 endif()
 
 # Precision toggle

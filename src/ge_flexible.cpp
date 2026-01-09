@@ -23,6 +23,7 @@
 #include "functions.h"
 #include "vectorfn.h"
 #include "statsfn.h"
+#include "profiler.h"
 
 // #if SSE_SUPPORT == 1
 // 	#define fastmultiply fastmultiply_sse
@@ -510,7 +511,10 @@ void genotype_stream_pass_mem_efficient (string name){
 	double tk_res;
 
 	int global_block_index = 0;
+	{
+		ScopedTimer timer("jackknife_pass1");
 	for (int jack_index = 0 ; jack_index < Njack ; jack_index++){
+		ScopedTimer timer_block("jackknife_block");
 
 		if (hetero_noise == true) {
 			output_XXz = MatrixXdr::Zero(Nindv,T_Nbin * Nz);
@@ -860,6 +864,7 @@ void genotype_stream_pass_mem_efficient (string name){
 		} // loop over read blocks
 
 	}//end loop over jackknife blocks
+	}  // end profiling scope for jackknife_pass1
 	cout << "Finished reading and computing over all blocks" << endl;
 	cout << endl;
 
@@ -1095,7 +1100,10 @@ void genotype_stream_pass (string name, int pass_num){
 	}
 
 	cout << "************ Making pass number "<< pass_num << " over genotypes ************" << endl;
+	{
+		ScopedTimer timer(pass_num == 1 ? "jackknife_pass1" : "jackknife_pass2");
 	for (int jack_index = 0 ; jack_index < Njack ; jack_index++){
+		ScopedTimer timer_block("jackknife_block");
 
 		int read_Nsnp = jack_block_size[jack_index];	
 		cout << "Pass "<< pass_num << ": Reading jackknife block " << jack_index << endl;
@@ -1498,7 +1506,10 @@ void genotype_stream_pass (string name, int pass_num){
 
 			X_l << A_trs,b_trk,b_trk.transpose(),NC;
 			Y_r << c_yky,yy;
-			herit = X_l.colPivHouseholderQr().solve(Y_r);
+			{
+				ScopedTimer timer("solve_normal_equations");
+				herit = X_l.colPivHouseholderQr().solve(Y_r);
+			}
 
 
 			if(jack_index == 0){
@@ -1582,6 +1593,7 @@ void genotype_stream_pass (string name, int pass_num){
 		} //end if pass_num = 2
 
 	}//end loop over jackknife blocks
+	}  // end profiling scope for jackknife pass
 	cout << "Finished reading and computing over all blocks" << endl;
 	cout << endl;
 
@@ -1721,9 +1733,12 @@ void genotype_stream_pass (string name, int pass_num){
 			}
 		}
 
-		herit = X_l.colPivHouseholderQr().solve(Y_r);
+		{
+			ScopedTimer timer("solve_normal_equations");
+			herit = X_l.colPivHouseholderQr().solve(Y_r);
+		}
 
-		if (verbose >= 2 ) { 
+		if (verbose >= 2 ) {
 			cout << "Whole-genome normal equations" << endl;
 			cout << "Xl" << endl << X_l << endl;
 			cout << "Yr" << endl << Y_r << endl;
@@ -3119,7 +3134,13 @@ int main(int argc, char const *argv[]){
     double elapsed = endtime - starttime;
     elapsed /= 1.e6;
     cout << "GENIE ran successfully. Time elapsed = " << elapsed << " seconds " << endl;
-	
+
+	// Output profiling data if requested
+	if (command_line_opts.profile_enabled) {
+		auto entries = Profiler::instance().entries();
+		dump_profile(entries, command_line_opts.profile_out);
+	}
+
     outfile.close();
 	return 0;
 }

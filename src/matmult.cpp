@@ -1,6 +1,7 @@
 #include "matmult.h"
 #include "mailman.h"
 #include "helper.h"
+#include "profiler.h"
 
 #include <iostream>
 #include <thread>
@@ -309,6 +310,7 @@ void MatMult::multiply_y_post_naive_mem(MatrixXdr &op, int Nrows_op, MatrixXdr &
 }
 
 void MatMult::multiply_y_post(MatrixXdr &op, int Nrows_op, MatrixXdr &res, bool subtract_means) {
+	ScopedTimer timer("matvec_Xt_v");
 	if (fast_mode) {
 		multiply_y_post_fast(op, Nrows_op, res, subtract_means);
 	} else {
@@ -320,6 +322,7 @@ void MatMult::multiply_y_post(MatrixXdr &op, int Nrows_op, MatrixXdr &res, bool 
 }
 
 void MatMult::multiply_y_pre(MatrixXdr &op, int Ncol_op, MatrixXdr &res, bool subtract_means) {
+	ScopedTimer timer("matvec_Xv");
 	if (fast_mode) {
 		multiply_y_pre_fast(op, Ncol_op, res, subtract_means);
 	} else {

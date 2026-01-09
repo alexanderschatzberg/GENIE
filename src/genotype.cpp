@@ -3,6 +3,7 @@
 #include "storage.h"
 #include "functions.h"
 #include "vectorfn.h"
+#include "profiler.h"
 
 #include <iostream>
 #include <fstream>
@@ -153,6 +154,7 @@ inline void printvectornl(vector<T> &t, string delim = " "){
 
 
 void genotype::read_bim (string filename){
+	ScopedTimer timer("io_read_genotype");
 	ifstream inp(filename.c_str());
 	if (!inp.is_open()){
 		cerr << "Error reading file "<< filename <<endl;
@@ -176,6 +178,7 @@ void genotype::read_bim (string filename){
 }
 
 void genotype::read_fam (string filename){
+	ScopedTimer timer("io_read_genotype");
 	ifstream inp(filename.c_str());
 	if (!inp.is_open()){
 		cerr << "Error reading file "<< filename <<endl;

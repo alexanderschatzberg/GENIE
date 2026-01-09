@@ -73,6 +73,10 @@ struct options{
 	bool use_dummy_pheno; // in case no phenotype is provided; use dummy pheno
 	std::string TRACE_FILE_PATH;
 	string version_string;
+
+	// Profiling options
+	bool profile_enabled;
+	std::string profile_out;
 };
 
 extern options command_line_opts;
@@ -124,6 +128,8 @@ std::string usage ( ) {
 		 << "  -eXa, --eXannot				By default, GENIE fits a single GxE variance component. To partition the GxE component w.r.t the annotation file, add '-eXannot' flag.\n"
 		 << "  -np, --norm-proj-pheno			By default, the phenotype vector is standardized after regressing covariates. Turn this off by setting '--norm-proj-pheno 0'.\n"
 		 << "  -i, --cov-add-intercept			By default, a vector of ones is appended to the covariates (the intercept term). Turn this off by setting '--cov-add-intercept 0'.\n"
+		 << "  -prof, --profile				Enable profiling and output timing data (requires GENIE_PROFILE build flag).\n"
+		 << "  --profile_out					Path to profiling output file (default: genie_profile.csv).\n"
 		 << endl;
 	return ostr.str ();
 }
@@ -366,6 +372,9 @@ void parse_args(int argc, char const *argv[]){
     command_line_opts.print_trace = false;
 	command_line_opts.use_dummy_pheno = false;
 
+	command_line_opts.profile_enabled = false;
+	command_line_opts.profile_out = "genie_profile.csv";
+
 	command_line_opts.memeff = false;
 	command_line_opts.opt1 = true;
 	command_line_opts.opt2 = true;
@@ -398,6 +407,8 @@ void parse_args(int argc, char const *argv[]){
 	cfg.insertKey ("opt1", "1");
 	cfg.insertKey ("opt2", "1");
 	cfg.insertKey ("eXannot", "0");
+	cfg.insertKey ("profile", "0");
+	cfg.insertKey ("profile_out", "genie_profile.csv");
 //	cfg.insertKey ("hetero_noise", "1");
 //	cfg.insertKey ("gene_by_env", "1");
 
@@ -456,6 +467,9 @@ void parse_args(int argc, char const *argv[]){
         command_line_opts.normalize_proj_pheno = cfg.getValueOfKey<bool> ("norm_proj_pheno", true);
 		command_line_opts.cov_add_intercept = cfg.getValueOfKey<bool>("cov_add_intercept", true);
 		command_line_opts.exannot = cfg.getValueOfKey<bool>("eXannot", false);
+
+		command_line_opts.profile_enabled = cfg.getValueOfKey<bool>("profile", false);
+		command_line_opts.profile_out = cfg.getValueOfKey<string>("profile_out", string("genie_profile.csv"));
 
         command_line_opts.model = cfg.getValueOfKey<string>("model", string("G+GxE+NxE"));
         if (cfg.keyExists("model")){
@@ -620,8 +634,16 @@ void parse_args(int argc, char const *argv[]){
                     cfg.insertKey ("opt1",Convert::T_to_string (command_line_opts.opt1), 0);
 					i++;
                 } else if (isarg(argv[i],"-mem_Nsnp", "--mem_Nsnp") ) {
-                    command_line_opts.mem_Nsnp = atoi(argv[i+1]);     
+                    command_line_opts.mem_Nsnp = atoi(argv[i+1]);
                     cfg.insertKey ("mem_Nsnp",Convert::T_to_string (command_line_opts.mem_Nsnp), 0);
+					i++;
+                } else if (isarg(argv[i], "-prof", "--profile")) {
+                    command_line_opts.profile_enabled = true;
+                    cfg.insertKey ("profile", "1", 0);
+					i++;
+                } else if (strcmp(argv[i], "--profile_out") == 0) {
+                    command_line_opts.profile_out = string(argv[i+1]);
+                    cfg.insertKey ("profile_out", argv[i+1], 0);
 					i++;
                 } else {
 					cerr << version_string << endl;
@@ -635,6 +657,9 @@ void parse_args(int argc, char const *argv[]){
             } else if (isarg(argv[i],"-mem", "--memeff") ) {
                 command_line_opts.memeff = true;
                 cfg.insertKey ("memeff", "1", 0);
+			} else if (isarg(argv[i], "-prof", "--profile")) {
+				command_line_opts.profile_enabled = true;
+				cfg.insertKey ("profile", "1", 0);
 			} else if(isarg(argv[i], "-nfm", "--no-fast-mode"))
 				command_line_opts.fast_mode = false;
 			else if(isarg(argv[i], "-miss", "--missing"))
@@ -686,6 +711,13 @@ void parse_args(int argc, char const *argv[]){
 			exitWithError (usage());
 		}
 	}
+
+#ifndef GENIE_PROFILE
+	if (command_line_opts.profile_enabled) {
+		cerr << "Warning: Profiling was requested but GENIE was not built with -DGENIE_PROFILE=ON. Profiling will be disabled." << endl;
+		command_line_opts.profile_enabled = false;
+	}
+#endif
 
 	cout << param_string << endl;
 }
