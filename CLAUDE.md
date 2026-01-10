@@ -26,6 +26,35 @@ CMake supports several configuration options:
 - **Build type**: `-DCMAKE_BUILD_TYPE=<Debug|Release|MinSizeRel|RelWithDebInfo>` (default: Release)
 - **SSE support**: `-DENABLE_SSE=ON` (only for amd64 platforms, default: OFF)
 - **Precision**: `-DUSE_DOUBLE=ON` (use double precision instead of float, default: OFF)
+- **Profiling**: `-DGENIE_PROFILE=ON` (enable internal profiling instrumentation, default: OFF)
+
+### Profiling
+
+GENIE includes an internal lightweight profiler for performance analysis:
+
+```bash
+cmake .. -DGENIE_PROFILE=ON
+make
+./GENIE <args> --profile --profile_out timing.csv
+```
+
+When enabled, the profiler measures wall-clock time and call counts for:
+- Matrix-vector operations (`matvec_Xv`, `matvec_Xt_v`)
+- Jackknife loops (`jackknife_pass1`, `jackknife_pass2`, `jackknife_block`)
+- Linear system solve (`solve_normal_equations`)
+- I/O operations (`io_read_genotype`, `io_read_phenotype`, etc.)
+
+Output formats: CSV (default) or JSON (auto-detected by file extension).
+
+When built without `-DGENIE_PROFILE=ON`, all profiling code compiles to zero-overhead no-ops.
+
+**Implementation details:**
+- `include/profiler.h`, `src/profiler.cpp`: Thread-safe profiler singleton with RAII `ScopedTimer`
+- Uses `std::chrono::steady_clock` for timing
+- Thread-local start times with atomic aggregation
+- Instrumented in: `src/matmult.cpp`, `src/ge_flexible.cpp`, `src/genotype.cpp`, `src/auxillary.cpp`
+
+See `PROFILE.md` for detailed usage guide and `TEST_PROFILING.md` for testing instructions.
 
 ### Debug/Sanitizer Flags
 
@@ -105,6 +134,7 @@ GENIE can be built as a Python package (`rhe`) using scikit-build-core. The pack
 - `include/vectorfn.h`, `include/statsfn.h`: Vector and statistical functions
 - `include/helper.h`: Helper macros and utilities
 - `include/io.h`: I/O utilities and debugging support
+- `include/profiler.h`, `src/profiler.cpp`: Performance profiling (optional, enabled with `GENIE_PROFILE`)
 
 ### Main Executables
 
