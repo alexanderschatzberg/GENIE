@@ -7,6 +7,10 @@ import numpy as np
 from pathlib import Path
 import argparse
 
+# Colormap for plots (change this to customize colors)
+COLORMAP = plt.cm.tab20c
+OPACITY = 0.95
+
 
 def load_profiling_data(results_dir: Path) -> pd.DataFrame:
     """Load all timing CSV files from the results directory."""
@@ -31,7 +35,7 @@ def plot_profiling(df: pd.DataFrame, output_path: Path = None):
     width = 0.8 / len(operations)
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    colors = plt.cm.tab10(np.linspace(0, 1, len(operations)))
+    colors = [(*c[:3], OPACITY) for c in COLORMAP(np.linspace(0, 0.8, len(operations)))]
 
     for i, op in enumerate(operations):
         times = []
