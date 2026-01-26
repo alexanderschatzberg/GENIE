@@ -1,0 +1,9 @@
+name,calls,total_seconds,avg_seconds,total_bytes
+jackknife_block,10,0.122241,0.012224,0
+matvec_Xv,60,0.044774,0.000746,0
+matvec_Xt_v,40,0.033889,0.000847,0
+io_read_annotation,1,0.000436,0.000436,0
+io_read_phenotype,1,0.000260,0.000260,0
+io_read_covariate,1,0.000216,0.000216,0
+io_read_environment,1,0.000193,0.000193,0
+solve_normal_equations,11,0.000025,0.000002,0
