@@ -640,7 +640,6 @@ void parse_args(int argc, char const *argv[]){
                 } else if (isarg(argv[i], "-prof", "--profile")) {
                     command_line_opts.profile_enabled = true;
                     cfg.insertKey ("profile", "1", 0);
-					i++;
                 } else if (strcmp(argv[i], "--profile_out") == 0) {
                     command_line_opts.profile_out = string(argv[i+1]);
                     cfg.insertKey ("profile_out", argv[i+1], 0);

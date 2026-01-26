@@ -1804,7 +1804,8 @@ void genotype_stream_single_pass (string name) {
 	MatrixXdr w3;
 
 	for (int jack_index = 0; jack_index < Njack; jack_index ++){
-		int read_Nsnp = jack_block_size[jack_index];	
+		ScopedTimer timer_block("jackknife_block");
+		int read_Nsnp = jack_block_size[jack_index];
 		cout << "Reading jackknife block " << jack_index << endl;
 		if (verbose >= 1)  {
 			cout << "************Reading jackknife block " << jack_index << " ************" <<endl;
@@ -2261,8 +2262,11 @@ void genotype_stream_single_pass (string name) {
 			}
 		}
 
-		MatrixXdr herit = X_l.fullPivHouseholderQr().solve(Y_r);
-
+		MatrixXdr herit;
+		{
+			ScopedTimer timer("solve_normal_equations");
+			herit = X_l.fullPivHouseholderQr().solve(Y_r);
+		}
 
 		if(jack_index == Njack){
 			outfile << "Number of individuals after filtering: " << Nindv_mask << endl;
