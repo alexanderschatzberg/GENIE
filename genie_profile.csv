@@ -1,0 +1,7 @@
+name,calls,total_seconds,avg_seconds,total_bytes
+matvec_Xv,60,0.038981,0.000650,0
+matvec_Xt_v,40,0.029320,0.000733,0
+io_read_annotation,1,0.000449,0.000449,0
+io_read_phenotype,1,0.000263,0.000263,0
+io_read_covariate,1,0.000223,0.000223,0
+io_read_environment,1,0.000200,0.000200,0
