@@ -8,6 +8,10 @@ from pathlib import Path
 import argparse
 import re
 
+# Colormap for plots (change this to customize colors)
+COLORMAP = plt.cm.tab20c
+OPACITY = 0.95
+
 
 def load_thread_data(results_dir: Path) -> pd.DataFrame:
     """Load timing CSV files and extract thread counts from filenames."""
@@ -37,7 +41,7 @@ def plot_thread_scaling(df: pd.DataFrame, output_path: Path = None):
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-    colors = plt.cm.tab10(np.linspace(0, 1, len(operations)))
+    colors = [(*c[:3], OPACITY) for c in COLORMAP(np.linspace(0, 0.8, len(operations)))]
 
     # Plot 1: Absolute time vs threads
     ax1 = axes[0]
