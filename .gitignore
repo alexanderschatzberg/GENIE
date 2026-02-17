@@ -154,6 +154,14 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# GENIE profiling output (regenerate with scripts/run_profiler.sh)
+profile_results/*.csv
+profile_results/*.out
+profile_threads_results/*.csv
+profile_threads_results/*.out
+genie_profile.csv
+genie_profile.json
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
