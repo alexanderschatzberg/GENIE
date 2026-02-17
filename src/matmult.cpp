@@ -27,6 +27,7 @@ MatMult::MatMult(genotype &xg,
 			bool xfast_mode,
 			int xnthreads,
 			int xk) {
+	ScopedTimer timer("matmult_init");
 	g = xg;
 	geno_matrix = xgeno_matrix;
 

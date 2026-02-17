@@ -19,6 +19,7 @@
 #include "matmult.h"
 #include "io.h"
 #include "std.h"
+#include "profiler.h"
 
 // #if SSE_SUPPORT==1
 // 	#define fastmultiply fastmultiply_sse
@@ -1535,10 +1536,13 @@ int main(int argc, char const *argv[]){
                         }
                 }
 
-                if(use_1col_annot==true)
-                        read_bed_1colannot(ifs,missing,read_Nsnp);
-                else
-                        read_bed2(ifs,missing,read_Nsnp);
+                {
+                        ScopedTimer timer_bed("io_read_bed_block");
+                        if(use_1col_annot==true)
+                                read_bed_1colannot(ifs,missing,read_Nsnp);
+                        else
+                                read_bed2(ifs,missing,read_Nsnp);
+                }
                 read_header=false;
 
                 for (int bin_index=0;bin_index<Nbin;bin_index++){
@@ -1943,6 +1947,8 @@ int main(int argc, char const *argv[]){
                         if( jack_index<Njack && len[k]==jack_bin[jack_index][k])
                                 jack_bin[jack_index][k]=0;
 
+                {
+                ScopedTimer timer_trace("trace_assembly");
                 for (int i=0;i<Nbin;i++){
                         for (int j=i;j<Nbin;j++){
                                 B1=XXz.block(0,(i*(Njack+1)*Nz)+(jack_index*Nz),Nindv,Nz);
@@ -1980,6 +1986,7 @@ int main(int argc, char const *argv[]){
 
                         }
                 }
+                } // end ScopedTimer trace_assembly
 
                 for (int k = 0; k < phenocount; k++) {
                         for (int i = 0; i < Nbin; i++) {
@@ -2054,7 +2061,8 @@ int main(int argc, char const *argv[]){
 
                         //         }
                         // }
-                        MatrixXdr herit=X_l.fullPivHouseholderQr().solve(Y_r);
+                        MatrixXdr herit;
+                        { ScopedTimer timer("solve_normal_equations"); herit = X_l.fullPivHouseholderQr().solve(Y_r); }
 
                         if(jack_index==Njack){
                                 if (k == 0) {
@@ -2522,7 +2530,11 @@ int main(int argc, char const *argv[]){
         ////////////////////////////////////////////////////////
         trace_file.close();
         outfile.close();
-            
+
+	if (command_line_opts.profile_enabled) {
+		auto entries = Profiler::instance().entries();
+		dump_profile(entries, command_line_opts.profile_out);
+	}
 
         ////////////////////////////////////////////////////////
         return 0;

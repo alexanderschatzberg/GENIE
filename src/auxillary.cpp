@@ -67,6 +67,7 @@ int read_env (int Nind, std::string filename){
 		}
 		j++;
 	}
+	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_environment", static_cast<uint64_t>(pos)); }
 	return xNenv;
 }
 
@@ -146,8 +147,9 @@ int read_cov (int Nind, std::string filename) {
 		}
 		j++;
 	}
+	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_covariate", static_cast<uint64_t>(pos)); }
 
-	//compute cov mean and impute 
+	//compute cov mean and impute
 	for (int a = 0; a < covNum ; a++)
 	{
 		int missing_num = missing[a].size();
@@ -254,6 +256,7 @@ void read_pheno(int Nind, std::string filename){
 		}
 		i++;
 	}
+	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_phenotype", static_cast<uint64_t>(pos)); }
 }
 
 //
@@ -352,6 +355,7 @@ void read_annot (string filename) {
 			annot_bool.push_back(snp_annot);
 			linenum++;
 		}
+		{ auto pos = inp.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_annotation", static_cast<uint64_t>(pos)); }
 		if(Nsnp != linenum){
 			cerr << "Number of rows in bim file and annotation file does not match\n" << endl;
 			exit (1);
