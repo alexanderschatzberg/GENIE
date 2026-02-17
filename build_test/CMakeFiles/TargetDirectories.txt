@@ -1,4 +1,0 @@
-/home/runner/work/GENIE/GENIE/build_test/CMakeFiles/genie_lib.dir
-/home/runner/work/GENIE/GENIE/build_test/CMakeFiles/GENIE.dir
-/home/runner/work/GENIE/GENIE/build_test/CMakeFiles/edit_cache.dir
-/home/runner/work/GENIE/GENIE/build_test/CMakeFiles/rebuild_cache.dir

@@ -93,11 +93,17 @@ GENIE instruments the following key computational regions:
 - `solve_normal_equations`: Solving the normal equations for variance components
 
 ### I/O Operations
-- `io_read_genotype`: Reading PLINK BED/BIM/FAM files
+- `io_read_genotype`: Reading PLINK BED/BIM/FAM files (includes `read_bed2`, `read_bed_1colannot`, and `get_observed_pj`)
 - `io_read_phenotype`: Reading phenotype file
 - `io_read_covariate`: Reading covariate file
 - `io_read_environment`: Reading environment file
 - `io_read_annotation`: Reading annotation file
+
+**Note on Nested Profiling**: Some operations are tracked in multiple categories. For example:
+- `read_bed2` and `get_observed_pj` are tracked under `io_read_genotype`
+- Since these functions are called within jackknife blocks, their time is also included in `jackknife_block`
+- Matrix operations (`matvec_Xv`, `matvec_Xt_v`) are also tracked separately while being included in `jackknife_block` time
+- This nesting allows you to see both the total time spent in jackknife blocks and the breakdown of I/O vs computation time
 
 ## Interpreting Results
 

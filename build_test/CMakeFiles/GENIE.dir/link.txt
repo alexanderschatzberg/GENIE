@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/GENIE.dir/link.d CMakeFiles/GENIE.dir/src/ge_flexible.cpp.o -o GENIE  libgenie_lib.a
