@@ -446,6 +446,7 @@ int count_fam(std::string filename){
 // Compute MAF from genotypes at a given SNP. 
 // Genotypes are encoded in bed format in line. 
 float get_observed_pj(const unsigned char* line){
+	ScopedTimer timer("compute_maf");
 	int y[4];
 	int observed_sum = 0;
 	int observed_ct = 0;
@@ -533,76 +534,80 @@ void read_bed2 (std::istream& ifs, bool allow_missing, int num_snp)  {
 		ifs.read (reinterpret_cast<char*>(gtype), ncol * sizeof(unsigned char));
 		float p_j = get_observed_pj(gtype);
 
-		// for this snp, add all annotations (bins) it belongs to
-		pointer_bins.clear();      
-		for(int bin_index = 0 ; bin_index < Nbin ; bin_index++)
-			if(annot_bool[global_snp_index][bin_index] == 1)
-				pointer_bins.push_back(bin_index);
+        {
+	        ScopedTimer timer("transform");
 
-		for (int k = 0 ;k < ncol ; k++) {
-			unsigned char c = gtype [k];
-			// Extract PLINK genotypes
-			y[0] = (c)&mask2;
-			y[1] = (c>>2)&mask2;
-			y[2] = (c>>4)&mask2;
-			y[3] = (c>>6)&mask2;
-			int j0 = k * unitsperword;
-			// Handle number of individuals not being a multiple of 4
-			int lmax = 4;
-			if (k == ncol - 1)  {
-				lmax = Nindv%4;
-				lmax = (lmax == 0)?4:lmax;
-			}
-			for ( int l = 0 ; l < lmax; l++){
-				// j: index over individuals
-				int j = j0 + l ;
-				// Extract  PLINK coded genotype and convert into 0/1/2
-				// PLINK coding: 
-				// 00->0
-				// 01->missing
-				// 10->1
-				// 11->2
-				// val:  genotype
-				int val = y[l];
-				if(val == 1 && !allow_missing){
-					// Impute by sampling from the distribution of genotype frequencies
-					val = simulate_geno_from_random(p_j, seedr);
-					val++;
-					val = (val == 1) ? 0 : val;
-				}
-				val-- ;
-				val =  (val < 0 ) ? 0 :val ;
-				sum += val;
+            // for this snp, add all annotations (bins) it belongs to
+            pointer_bins.clear();
+            for(int bin_index = 0 ; bin_index < Nbin ; bin_index++)
+                if(annot_bool[global_snp_index][bin_index] == 1)
+                    pointer_bins.push_back(bin_index);
 
-				// Loop over all bins (=annotations) this SNP belong to
-				for(int bin_index = 0 ; bin_index < pointer_bins.size();bin_index++){
-				    int bin_pointer = pointer_bins[bin_index];
+            for (int k = 0 ;k < ncol ; k++) {
+                unsigned char c = gtype [k];
+                // Extract PLINK genotypes
+                y[0] = (c)&mask2;
+                y[1] = (c>>2)&mask2;
+                y[2] = (c>>4)&mask2;
+                y[3] = (c>>6)&mask2;
+                int j0 = k * unitsperword;
+                // Handle number of individuals not being a multiple of 4
+                int lmax = 4;
+                if (k == ncol - 1)  {
+                    lmax = Nindv%4;
+                    lmax = (lmax == 0)?4:lmax;
+                }
+                for ( int l = 0 ; l < lmax; l++){
+                    // j: index over individuals
+                    int j = j0 + l ;
+                    // Extract  PLINK coded genotype and convert into 0/1/2
+                    // PLINK coding:
+                    // 00->0
+                    // 01->missing
+                    // 10->1
+                    // 11->2
+                    // val:  genotype
+                    int val = y[l];
+                    if(val == 1 && !allow_missing){
+                        // Impute by sampling from the distribution of genotype frequencies
+                        val = simulate_geno_from_random(p_j, seedr);
+                        val++;
+                        val = (val == 1) ? 0 : val;
+                    }
+                    val-- ;
+                    val =  (val < 0 ) ? 0 :val ;
+                    sum += val;
 
-					// snp_index: index over SNPs that depends on the bin being considered
-					int snp_index;
-					if(use_mailman == true){
-						snp_index = allgen_mail[bin_pointer].index;
-						int horiz_seg_no = snp_index / allgen_mail[bin_pointer].segment_size_hori;
-						allgen_mail[bin_pointer].p[horiz_seg_no][j] = 3 *allgen_mail[bin_pointer].p[horiz_seg_no][j]  + val;
-						// computing sum for every snp to compute mean
-						allgen_mail[bin_pointer].columnsum[snp_index]+=val;
+                    // Loop over all bins (=annotations) this SNP belong to
+                    for(int bin_index = 0 ; bin_index < pointer_bins.size();bin_index++){
+                        int bin_pointer = pointer_bins[bin_index];
 
-					} else {
-						snp_index = allgen[bin_pointer].index;
-						allgen[bin_pointer].gen(snp_index,j) = val;
-					}
-				}
-			}
-		}
+                        // snp_index: index over SNPs that depends on the bin being considered
+                        int snp_index;
+                        if(use_mailman == true){
+                            snp_index = allgen_mail[bin_pointer].index;
+                            int horiz_seg_no = snp_index / allgen_mail[bin_pointer].segment_size_hori;
+                            allgen_mail[bin_pointer].p[horiz_seg_no][j] = 3 *allgen_mail[bin_pointer].p[horiz_seg_no][j]  + val;
+                            // computing sum for every snp to compute mean
+                            allgen_mail[bin_pointer].columnsum[snp_index]+=val;
 
-		// Update number of SNPs in each bin
-		for(int bin_index = 0 ; bin_index < pointer_bins.size();bin_index++){
-			int bin_pointer = pointer_bins[bin_index];
-			if(use_mailman == true)
-				allgen_mail[bin_pointer].index++;
-			else
-				allgen[bin_pointer].index++;
-		}
+                        } else {
+                            snp_index = allgen[bin_pointer].index;
+                            allgen[bin_pointer].gen(snp_index,j) = val;
+                        }
+                    }
+                }
+            }
+
+            // Update number of SNPs in each bin
+            for(int bin_index = 0 ; bin_index < pointer_bins.size();bin_index++){
+                int bin_pointer = pointer_bins[bin_index];
+                if(use_mailman == true)
+                    allgen_mail[bin_pointer].index++;
+                else
+                    allgen[bin_pointer].index++;
+            }
+        }
 	}
 
 	sum = 0 ;
@@ -634,60 +639,64 @@ void read_bed_1colannot (std::istream& ifs,bool allow_missing,int num_snp)  {
 		ifs.read (reinterpret_cast<char*>(gtype), ncol * sizeof(unsigned char));
 		float p_j = get_observed_pj (gtype);
 
-		for (int k = 0 ;k < ncol ; k++) {
-			unsigned char c = gtype [k];
-			// Extract PLINK genotypes
-			y[0] = (c)&mask2;
-			y[1] = (c>>2)&mask2;
-			y[2] = (c>>4)&mask2;
-			y[3] = (c>>6)&mask2;
-			int j0 = k * unitsperword;
-			// Handle number of individuals not being a multiple of 4
-			int lmax = 4;
-			if (k == ncol - 1)  {
-				lmax = Nindv%4;
-				lmax = (lmax == 0)?4:lmax;
-			}
-			for ( int l = 0 ; l < lmax; l++){
-				int j = j0 + l ;
-				// Extract  PLINK coded genotype and convert into 0 / 1/2
-				// PLINK coding: 
-				// 00->0
-				// 01->missing
-				// 10->1
-				// 11->2
-				int val = y[l];
-				if(val == 1 && !allow_missing){
-					val = simulate_geno_from_random(p_j, seedr);
-					val++;
-					val = (val == 1) ? 0 : val;
-				}
-				val-- ;
-				val =  (val < 0 ) ? 0 :val ;
-				sum += val;
+        {
+	        ScopedTimer timer("transform");
 
-				bin_pointer = SNP_annot[global_snp_index]-1;
+            for (int k = 0 ;k < ncol ; k++) {
+                unsigned char c = gtype [k];
+                // Extract PLINK genotypes
+                y[0] = (c)&mask2;
+                y[1] = (c>>2)&mask2;
+                y[2] = (c>>4)&mask2;
+                y[3] = (c>>6)&mask2;
+                int j0 = k * unitsperword;
+                // Handle number of individuals not being a multiple of 4
+                int lmax = 4;
+                if (k == ncol - 1)  {
+                    lmax = Nindv%4;
+                    lmax = (lmax == 0)?4:lmax;
+                }
+                for ( int l = 0 ; l < lmax; l++){
+                    int j = j0 + l ;
+                    // Extract  PLINK coded genotype and convert into 0 / 1/2
+                    // PLINK coding:
+                    // 00->0
+                    // 01->missing
+                    // 10->1
+                    // 11->2
+                    int val = y[l];
+                    if(val == 1 && !allow_missing){
+                        val = simulate_geno_from_random(p_j, seedr);
+                        val++;
+                        val = (val == 1) ? 0 : val;
+                    }
+                    val-- ;
+                    val =  (val < 0 ) ? 0 :val ;
+                    sum += val;
 
-				int snp_index;
-				if(use_mailman == true){
-					snp_index = allgen_mail[bin_pointer].index;
-					int horiz_seg_no = snp_index / allgen_mail[bin_pointer].segment_size_hori;
-					allgen_mail[bin_pointer].p[horiz_seg_no][j] = 3 *allgen_mail[bin_pointer].p[horiz_seg_no][j]  + val;
-					// computing sum for every snp to compute mean
-					allgen_mail[bin_pointer].columnsum[snp_index]+=val;
+                    bin_pointer = SNP_annot[global_snp_index]-1;
 
-				}else{
-					snp_index = allgen[bin_pointer].index;
-					allgen[bin_pointer].gen(snp_index,j) = val;
-				}
-			}
-		}
+                    int snp_index;
+                    if(use_mailman == true){
+                        snp_index = allgen_mail[bin_pointer].index;
+                        int horiz_seg_no = snp_index / allgen_mail[bin_pointer].segment_size_hori;
+                        allgen_mail[bin_pointer].p[horiz_seg_no][j] = 3 *allgen_mail[bin_pointer].p[horiz_seg_no][j]  + val;
+                        // computing sum for every snp to compute mean
+                        allgen_mail[bin_pointer].columnsum[snp_index]+=val;
 
-		bin_pointer = SNP_annot[global_snp_index]-1;
-		if(use_mailman == true)
-			allgen_mail[bin_pointer].index++;
-		else
-			allgen[bin_pointer].index++;
+                    }else{
+                        snp_index = allgen[bin_pointer].index;
+                        allgen[bin_pointer].gen(snp_index,j) = val;
+                    }
+                }
+            }
+
+            bin_pointer = SNP_annot[global_snp_index]-1;
+            if(use_mailman == true)
+                allgen_mail[bin_pointer].index++;
+            else
+                allgen[bin_pointer].index++;
+        }
 	}
 
 	sum = 0 ;

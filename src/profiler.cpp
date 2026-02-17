@@ -100,11 +100,11 @@ std::vector<ProfileEntry> Profiler::entries() const {
         result.push_back(pair.second);
     }
 
-    // Sort: "_" first, then by self_seconds descending
+    // Sort: "root" first, then by self_seconds descending
     std::sort(result.begin(), result.end(),
               [](const ProfileEntry& a, const ProfileEntry& b) {
-                  if (a.name == "_") return true;
-                  if (b.name == "_") return false;
+                  if (a.name == "root") return true;
+                  if (b.name == "root") return false;
                   return a.self_seconds() > b.self_seconds();
               });
 

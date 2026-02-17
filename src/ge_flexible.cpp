@@ -868,7 +868,7 @@ void genotype_stream_pass_mem_efficient (string name){
 		} // loop over read blocks
 
 	}//end loop over jackknife blocks
-	}  // end profiling scope for jackknife_pass1
+	}  // end profiling scope for pass1
 	cout << "Finished reading and computing over all blocks" << endl;
 	cout << endl;
 
@@ -3008,7 +3008,7 @@ int main(int argc, char const *argv[]){
     long starttime = now.tv_sec * UMILLION + now.tv_usec;
 
 	parse_args (argc,argv);
-	Profiler::instance().start("_");
+	Profiler::instance().start("root");
 	init_params ();
 
 	read_auxillary_files ();
@@ -3058,7 +3058,7 @@ int main(int argc, char const *argv[]){
 			all_Uzb.col(j) = w3;
 		}
 	}
-	} // end random_vector_init timer scope
+	} // end initialize timer scope
 
 	if(Annot_x_E == true){
 		nongen_Nbin = Nenv * Nbin;
@@ -3161,7 +3161,7 @@ int main(int argc, char const *argv[]){
     cout << "GENIE ran successfully. Time elapsed = " << elapsed << " seconds " << endl;
 
 	// Stop root timer before dumping profile data
-	Profiler::instance().stop("_");
+	Profiler::instance().stop("root");
 
 	// Output profiling data if requested
 	if (command_line_opts.profile_enabled) {
