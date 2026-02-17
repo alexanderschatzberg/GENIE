@@ -512,9 +512,9 @@ void genotype_stream_pass_mem_efficient (string name){
 
 	int global_block_index = 0;
 	{
-		ScopedTimer timer("jackknife_pass1");
+		ScopedTimer timer("pass1");
 	for (int jack_index = 0 ; jack_index < Njack ; jack_index++){
-		ScopedTimer timer_block("jackknife_block");
+		ScopedTimer timer_block("jackknife");
 
 		if (hetero_noise == true) {
 			output_XXz = MatrixXdr::Zero(Nindv,T_Nbin * Nz);
@@ -583,7 +583,8 @@ void genotype_stream_pass_mem_efficient (string name){
 			}
 
 			{
-				ScopedTimer timer_bed("io_read_bed_block");
+				ScopedTimer timer_fileio("file_io");
+				ScopedTimer timer_bed("genotype");
 				if(use_1col_annot == true)
 					read_bed_1colannot(ifs, missing, read_Nsnp);
 				else
@@ -1104,9 +1105,9 @@ void genotype_stream_pass (string name, int pass_num){
 
 	cout << "************ Making pass number "<< pass_num << " over genotypes ************" << endl;
 	{
-		ScopedTimer timer(pass_num == 1 ? "jackknife_pass1" : "jackknife_pass2");
+		ScopedTimer timer(pass_num == 1 ? "pass1" : "pass2");
 	for (int jack_index = 0 ; jack_index < Njack ; jack_index++){
-		ScopedTimer timer_block("jackknife_block");
+		ScopedTimer timer_block("jackknife");
 
 		int read_Nsnp = jack_block_size[jack_index];	
 		cout << "Pass "<< pass_num << ": Reading jackknife block " << jack_index << endl;
@@ -1142,7 +1143,8 @@ void genotype_stream_pass (string name, int pass_num){
 		if (opt1  && pass_num == 2) {}
 		else {
 			{
-				ScopedTimer timer_bed("io_read_bed_block");
+				ScopedTimer timer_fileio("file_io");
+				ScopedTimer timer_bed("genotype");
 				if(use_1col_annot == true)
 					read_bed_1colannot(ifs, missing, read_Nsnp);
 				else
@@ -1151,7 +1153,7 @@ void genotype_stream_pass (string name, int pass_num){
 			read_header = false;
 		}
 
-		if (verbose >= 1) { 
+		if (verbose >= 1) {
 			cout << "Number of SNPs in each bin in jackknife block "<< jack_index << endl;
 			vectorfn::printvector (jack_bin[jack_index]); cout << endl;
 		}
@@ -1440,7 +1442,7 @@ void genotype_stream_pass (string name, int pass_num){
 		} // loop over bins
 
 		if(pass_num == 2){
-			ScopedTimer timer_trace("trace_assembly");
+			ScopedTimer timer_trace("trace_estimation");
 			//
 			// Compute variance components for each jackknife subsample
 			//
@@ -1514,7 +1516,7 @@ void genotype_stream_pass (string name, int pass_num){
 			X_l << A_trs,b_trk,b_trk.transpose(),NC;
 			Y_r << c_yky,yy;
 			{
-				ScopedTimer timer("solve_normal_equations");
+				ScopedTimer timer("linear_solve");
 				herit = X_l.colPivHouseholderQr().solve(Y_r);
 			}
 
@@ -1676,7 +1678,7 @@ void genotype_stream_pass (string name, int pass_num){
 	} // pass 1
 
 	if(pass_num == 2){
-		ScopedTimer timer_trace("trace_assembly");
+		ScopedTimer timer_trace("trace_estimation");
 		//
 		// Compute variance components for the full sample
 		//
@@ -1742,7 +1744,7 @@ void genotype_stream_pass (string name, int pass_num){
 		}
 
 		{
-			ScopedTimer timer("solve_normal_equations");
+			ScopedTimer timer("linear_solve");
 			herit = X_l.colPivHouseholderQr().solve(Y_r);
 		}
 
@@ -1812,7 +1814,7 @@ void genotype_stream_single_pass (string name) {
 	MatrixXdr w3;
 
 	for (int jack_index = 0; jack_index < Njack; jack_index ++){
-		ScopedTimer timer_block("jackknife_block");
+		ScopedTimer timer_block("jackknife");
 		int read_Nsnp = jack_block_size[jack_index];
 		cout << "Reading jackknife block " << jack_index << endl;
 		if (verbose >= 1)  {
@@ -1847,7 +1849,8 @@ void genotype_stream_single_pass (string name) {
 		}
 
 		{
-			ScopedTimer timer_bed("io_read_bed_block");
+			ScopedTimer timer_fileio("file_io");
+			ScopedTimer timer_bed("genotype");
 			if(use_1col_annot == true)
 				read_bed_1colannot (ifs, missing, read_Nsnp);
 			else
@@ -2166,7 +2169,7 @@ void genotype_stream_single_pass (string name) {
 
 
 	for (jack_index = 0; jack_index <= Njack ; jack_index ++){
-		ScopedTimer timer_trace("trace_assembly");
+		ScopedTimer timer_trace("trace_estimation");
 		for(int k = 0; k < Nbin; k++)
 			if( jack_index < Njack && len[k] == jack_bin[jack_index][k])
 				jack_bin[jack_index][k] = 0;
@@ -2276,7 +2279,7 @@ void genotype_stream_single_pass (string name) {
 
 		MatrixXdr herit;
 		{
-			ScopedTimer timer("solve_normal_equations");
+			ScopedTimer timer("linear_solve");
 			herit = X_l.fullPivHouseholderQr().solve(Y_r);
 		}
 
@@ -2343,7 +2346,7 @@ void genotype_stream_single_pass (string name) {
 // If no covariates are provided, center phenotype
 //  
 void regress_covariates () {
-	ScopedTimer timer_regcov("regress_covariates");
+	ScopedTimer timer_regcov("covariate_regression");
 	if (verbose >= 3) {
 		cout << "In regress_covariates" << endl;
 	}
@@ -2429,7 +2432,8 @@ void regress_covariates () {
 }
 
 // Read .bim, .pheno, .env, .fam, .annot, .cov file.
-void read_auxillary_files () { 
+void read_auxillary_files () {
+	ScopedTimer timer_fileio("file_io");
 
 	// Read bim file to count number of SNPs
 	string geno_name = command_line_opts.GENOTYPE_FILE_PATH;
@@ -3004,6 +3008,7 @@ int main(int argc, char const *argv[]){
     long starttime = now.tv_sec * UMILLION + now.tv_usec;
 
 	parse_args (argc,argv);
+	Profiler::instance().start("_");
 	init_params ();
 
 	read_auxillary_files ();
@@ -3014,7 +3019,7 @@ int main(int argc, char const *argv[]){
 	}
 	//define random vector z's
 	{
-	ScopedTimer timer_rng("random_vector_init");
+	ScopedTimer timer_rng("initialize");
 	all_zb = MatrixXdr::Random (Nindv, Nz);
 
 	if (seed == -1) {
@@ -3154,6 +3159,9 @@ int main(int argc, char const *argv[]){
     double elapsed = endtime - starttime;
     elapsed /= 1.e6;
     cout << "GENIE ran successfully. Time elapsed = " << elapsed << " seconds " << endl;
+
+	// Stop root timer before dumping profile data
+	Profiler::instance().stop("_");
 
 	// Output profiling data if requested
 	if (command_line_opts.profile_enabled) {

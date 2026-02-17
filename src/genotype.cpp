@@ -154,7 +154,7 @@ inline void printvectornl(vector<T> &t, string delim = " "){
 
 
 void genotype::read_bim (string filename){
-	ScopedTimer timer("io_read_genotype");
+	ScopedTimer timer("genotype");
 	ifstream inp(filename.c_str());
 	if (!inp.is_open()){
 		cerr << "Error reading file "<< filename <<endl;
@@ -174,12 +174,12 @@ void genotype::read_bim (string filename){
 		j++;
 	}
 	Nsnp = j;
-	{ auto pos = inp.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_genotype", static_cast<uint64_t>(pos)); }
+	{ auto pos = inp.tellg(); if (pos > 0) Profiler::instance().add_bytes("genotype", static_cast<uint64_t>(pos)); }
 	inp.close();
 }
 
 void genotype::read_fam (string filename){
-	ScopedTimer timer("io_read_genotype");
+	ScopedTimer timer("genotype");
 	ifstream inp(filename.c_str());
 	if (!inp.is_open()){
 		cerr << "Error reading file "<< filename <<endl;
@@ -199,7 +199,7 @@ void genotype::read_fam (string filename){
 		j++;
 	}
 	Nindv = j;
-	{ auto pos = inp.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_genotype", static_cast<uint64_t>(pos)); }
+	{ auto pos = inp.tellg(); if (pos > 0) Profiler::instance().add_bytes("genotype", static_cast<uint64_t>(pos)); }
 	inp.close();
 }
 

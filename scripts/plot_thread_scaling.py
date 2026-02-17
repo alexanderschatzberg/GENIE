@@ -77,13 +77,13 @@ def plot_thread_scaling(df: pd.DataFrame, output_path: Path = None,
             for t in threads:
                 mask = (ds_df["threads"] == t) & (ds_df["name"] == op)
                 if mask.any():
-                    times.append(ds_df.loc[mask, "total_seconds"].values[0])
+                    times.append(ds_df.loc[mask, "self_seconds"].values[0])
                 else:
                     times.append(np.nan)
             ax1.plot(threads, times, "o-", label=op, color=colors[i])
 
         ax1.set_xlabel("Threads")
-        ax1.set_ylabel("Time (seconds)")
+        ax1.set_ylabel("Self-Time (seconds)")
         ax1.set_title("Absolute Time vs Thread Count")
         ax1.set_xscale("log", base=2)
         ax1.set_xticks(threads)
@@ -98,7 +98,7 @@ def plot_thread_scaling(df: pd.DataFrame, output_path: Path = None,
             for t in threads:
                 mask = (ds_df["threads"] == t) & (ds_df["name"] == op)
                 if mask.any():
-                    times.append(ds_df.loc[mask, "total_seconds"].values[0])
+                    times.append(ds_df.loc[mask, "self_seconds"].values[0])
                 else:
                     times.append(np.nan)
 
@@ -157,7 +157,7 @@ def main():
         type=str,
         default=None,
         help="Comma-separated list of operation names to include (e.g., "
-             "matvec_Xv,jackknife_block)"
+             "Xv,jackknife)"
     )
     args = parser.parse_args()
 

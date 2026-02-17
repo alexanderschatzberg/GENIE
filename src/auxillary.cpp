@@ -11,7 +11,7 @@ using namespace std;
 // Inputs: Number of individuals, filename
 // Return number of environments
 int read_env (int Nind, std::string filename){
-	ScopedTimer timer("io_read_environment");
+	ScopedTimer timer("environment");
 	ifstream ifs(filename.c_str(), ios::in);
 	if (!ifs.is_open()){
 		cerr << "ERROR: Error reading file with environmental variables : "<< filename <<endl;
@@ -67,7 +67,7 @@ int read_env (int Nind, std::string filename){
 		}
 		j++;
 	}
-	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_environment", static_cast<uint64_t>(pos)); }
+	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("environment", static_cast<uint64_t>(pos)); }
 	return xNenv;
 }
 
@@ -78,7 +78,7 @@ int read_env (int Nind, std::string filename){
 // Inputs: Number of individuals, filename
 // Return total number of covariates (covariates specified in covariate file [ + environmental variables] [ + intercept])
 int read_cov (int Nind, std::string filename) {
-	ScopedTimer timer("io_read_covariate");
+	ScopedTimer timer("covariate");
 	ifstream ifs(filename.c_str(), ios::in);
 	if (!ifs.is_open()){
 		cerr << "ERROR: Error reading covariate file : "<< filename <<endl;
@@ -147,7 +147,7 @@ int read_cov (int Nind, std::string filename) {
 		}
 		j++;
 	}
-	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_covariate", static_cast<uint64_t>(pos)); }
+	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("covariate", static_cast<uint64_t>(pos)); }
 
 	//compute cov mean and impute
 	for (int a = 0; a < covNum ; a++)
@@ -204,7 +204,7 @@ int read_cov (int Nind, std::string filename) {
 // Read pheno file
 // Inputs: Number of individuals, filename
 void read_pheno(int Nind, std::string filename){
-	ScopedTimer timer("io_read_phenotype");
+	ScopedTimer timer("phenotype");
 	ifstream ifs(filename.c_str(), ios::in); 
 
 	if (!ifs.is_open()){
@@ -256,7 +256,7 @@ void read_pheno(int Nind, std::string filename){
 		}
 		i++;
 	}
-	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_phenotype", static_cast<uint64_t>(pos)); }
+	{ auto pos = ifs.tellg(); if (pos > 0) Profiler::instance().add_bytes("phenotype", static_cast<uint64_t>(pos)); }
 }
 
 //
@@ -279,7 +279,7 @@ int count_pheno(std::string filename){
 }
 
 void read_annot (string filename) {
-	ScopedTimer timer("io_read_annotation");
+	ScopedTimer timer("annotation");
 	ifstream inp(filename.c_str());
 	if (!inp.is_open()){
 		cout <<"WARNING: no annotation file provided. All SNPs will be assigned to a single annotation" << endl;	
@@ -355,7 +355,7 @@ void read_annot (string filename) {
 			annot_bool.push_back(snp_annot);
 			linenum++;
 		}
-		{ auto pos = inp.tellg(); if (pos > 0) Profiler::instance().add_bytes("io_read_annotation", static_cast<uint64_t>(pos)); }
+		{ auto pos = inp.tellg(); if (pos > 0) Profiler::instance().add_bytes("annotation", static_cast<uint64_t>(pos)); }
 		if(Nsnp != linenum){
 			cerr << "Number of rows in bim file and annotation file does not match\n" << endl;
 			exit (1);

@@ -58,26 +58,26 @@ void io::print (printable &p, int level, string file) {
 
 template<class Matrix>
 void write_matrix(std::ofstream &ofs, const Matrix& matrix){
-	ScopedTimer timer("io_write_summary");
+	ScopedTimer timer("summary_write");
 	int rows = static_cast<int>(matrix.rows());
     int cols = static_cast<int>(matrix.cols());
     uint64_t bytes = 2 * sizeof(int) + static_cast<uint64_t>(rows) * cols * sizeof(typename Matrix::Scalar);
     ofs.write((char*) (&rows), sizeof(int));
     ofs.write((char*) (&cols), sizeof(int));
     ofs.write((char*) matrix.data(), rows*cols*sizeof(typename Matrix::Scalar) );
-    Profiler::instance().add_bytes("io_write_summary", bytes);
+    Profiler::instance().add_bytes("summary_write", bytes);
 }
 
 template<class Matrix>
 void read_matrix(std::ifstream &ifs, Matrix& matrix){
-	ScopedTimer timer("io_read_summary");
+	ScopedTimer timer("summary_read");
 	int rows = 0; int cols = 0;
     ifs.read((char*) (&rows),sizeof(int));
     ifs.read((char*) (&cols),sizeof(int));
     matrix.resize(rows, cols);
     ifs.read( (char *) matrix.data() , rows*cols*sizeof(typename Matrix::Scalar) );
     uint64_t bytes = 2 * sizeof(int) + static_cast<uint64_t>(rows) * cols * sizeof(typename Matrix::Scalar);
-    Profiler::instance().add_bytes("io_read_summary", bytes);
+    Profiler::instance().add_bytes("summary_read", bytes);
 }
 
 
