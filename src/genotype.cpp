@@ -506,6 +506,7 @@ int simulate_geno_from_random (float p_j, std::mt19937 &seedr){
 // ifs: stream object associated with bed file.
 // num_snp: number of SNPs to read
 void read_bed2 (std::istream& ifs, bool allow_missing, int num_snp)  {
+	ScopedTimer timer("io_read_genotype");
 	char magic[3];
     set_metadata ();
 
@@ -608,6 +609,7 @@ void read_bed2 (std::istream& ifs, bool allow_missing, int num_snp)  {
 }
 
 void read_bed_1colannot (std::istream& ifs,bool allow_missing,int num_snp)  {
+	ScopedTimer timer("io_read_genotype");
 	//ifstream ifs (filename.c_str(), ios::in|ios::binary);
 	char magic[3];
 	set_metadata ();

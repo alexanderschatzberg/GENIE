@@ -1,0 +1,2 @@
+/usr/bin/ar qc libgenie_lib.a CMakeFiles/genie_lib.dir/src/auxillary.cpp.o CMakeFiles/genie_lib.dir/src/genotype.cpp.o CMakeFiles/genie_lib.dir/src/genomult.cpp.o CMakeFiles/genie_lib.dir/src/matmult.cpp.o CMakeFiles/genie_lib.dir/src/storage.cpp.o CMakeFiles/genie_lib.dir/src/functions.cpp.o CMakeFiles/genie_lib.dir/src/profiler.cpp.o
+/usr/bin/ranlib libgenie_lib.a
