@@ -23,6 +23,7 @@
 #include "functions.h"
 #include "vectorfn.h"
 #include "statsfn.h"
+#include "profiler.h"
 
 // #if SSE_SUPPORT == 1
 // 	#define fastmultiply fastmultiply_sse
@@ -565,10 +566,13 @@ void genotype_stream_pass_mem_efficient (string name){
 				}
 			}
 
-			if(use_1col_annot == true)
-				read_bed_1colannot(ifs, missing, read_Nsnp);
-			else
-				read_bed2(ifs, missing, read_Nsnp);
+			{
+				ScopedTimer timer_bed("io_read_bed_block");
+				if(use_1col_annot == true)
+					read_bed_1colannot(ifs, missing, read_Nsnp);
+				else
+					read_bed2(ifs, missing, read_Nsnp);
+			}
 			read_header = false;
 
 			for (int bin_index = 0 ; bin_index < Nbin ; bin_index++){
@@ -1118,11 +1122,14 @@ void genotype_stream_pass (string name, int pass_num){
 		}
 
 		if (opt1  && pass_num == 2) {}
-		else { 
-			if(use_1col_annot == true)
-				read_bed_1colannot(ifs, missing, read_Nsnp);
-			else
-				read_bed2(ifs, missing, read_Nsnp);
+		else {
+			{
+				ScopedTimer timer_bed("io_read_bed_block");
+				if(use_1col_annot == true)
+					read_bed_1colannot(ifs, missing, read_Nsnp);
+				else
+					read_bed2(ifs, missing, read_Nsnp);
+			}
 			read_header = false;
 		}
 
@@ -1380,9 +1387,10 @@ void genotype_stream_pass (string name, int pass_num){
 		} // loop over bins
 
 		if(pass_num == 2){
-			// 	
+			//
 			// Compute variance components for each jackknife subsample
 			//
+			ScopedTimer timer_trace("trace_assembly");
 			for(int l = 0 ; l < T_Nbin ; l++)
 				if( len[l]==jack_bin[jack_index][l])
 					jack_bin[jack_index][l]=0;
@@ -1452,7 +1460,7 @@ void genotype_stream_pass (string name, int pass_num){
 
 			X_l << A_trs,b_trk,b_trk.transpose(),NC;
 			Y_r << c_yky,yy;
-			herit = X_l.colPivHouseholderQr().solve(Y_r);
+			{ ScopedTimer timer("solve_normal_equations"); herit = X_l.colPivHouseholderQr().solve(Y_r); }
 
 
 			if(jack_index == 0){
@@ -1616,6 +1624,7 @@ void genotype_stream_pass (string name, int pass_num){
 		//
 		// Compute variance components for the full sample
 		//
+		ScopedTimer timer_trace("trace_assembly");
 		for (int i = 0 ; i < T_Nbin ; i++){
 			c_yky(i,0) = yXXy(i,1) / len[i];
 			//if(both_side_cov == false)
@@ -1677,9 +1686,9 @@ void genotype_stream_pass (string name, int pass_num){
 			}
 		}
 
-		herit = X_l.colPivHouseholderQr().solve(Y_r);
+		{ ScopedTimer timer("solve_normal_equations"); herit = X_l.colPivHouseholderQr().solve(Y_r); }
 
-		if (verbose >= 2 ) { 
+		if (verbose >= 2 ) {
 			cout << "Whole-genome normal equations" << endl;
 			cout << "Xl" << endl << X_l << endl;
 			cout << "Yr" << endl << Y_r << endl;
@@ -1719,6 +1728,7 @@ void genotype_stream_pass (string name, int pass_num){
 // Regress covariates from phenotypes
 //  
 void regress_covariates () {
+	ScopedTimer timer_regcov("regress_covariates");
 	bool normalize_proj_pheno = command_line_opts.normalize_proj_pheno;
 	if(use_cov == true){
 		MatrixXdr mat_mask = mask.replicate(1,Ncov);
@@ -2517,6 +2527,11 @@ int main(int argc, char const *argv[]){
     double elapsed = endtime - starttime;
     elapsed /= 1.e6;
     cout << "GENIE ran successfully. Time elapsed = " << elapsed << " seconds " << endl;
-	
+
+	if (command_line_opts.profile_enabled) {
+		auto entries = Profiler::instance().entries();
+		dump_profile(entries, command_line_opts.profile_out);
+	}
+
 	return 0;
 }

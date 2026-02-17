@@ -22,6 +22,7 @@
 #include "matmult.h"
 #include "io.h"
 #include "std.h"
+#include "profiler.h"
 
 // #include "/usr/include/boost/random.hpp"
 
@@ -1587,10 +1588,13 @@ int main(int argc, char const *argv[]){
                         }
                 }
                 // cout << "DEBUG: before reading bed file" << endl;
-                if(use_1col_annot==true)
-                        read_bed_1colannot(ifs,missing,read_Nsnp);
-                else
-                        read_bed2(ifs,missing,read_Nsnp);
+                {
+                        ScopedTimer timer_bed("io_read_bed_block");
+                        if(use_1col_annot==true)
+                                read_bed_1colannot(ifs,missing,read_Nsnp);
+                        else
+                                read_bed2(ifs,missing,read_Nsnp);
+                }
                 // cout << "DEBUG: after reading bed file" << endl;
                 read_header=false;
 
@@ -2193,7 +2197,8 @@ int main(int argc, char const *argv[]){
 
                                 }
                         }
-                        MatrixXdr herit=X_l.fullPivHouseholderQr().solve(Y_r);
+                        MatrixXdr herit;
+                        { ScopedTimer timer("solve_normal_equations"); herit = X_l.fullPivHouseholderQr().solve(Y_r); }
 
                         if(jack_index==Njack){
                                 if (k == 0) {
@@ -2657,7 +2662,11 @@ int main(int argc, char const *argv[]){
         ////////////////////////////////////////////////////////
         trace_file.close();
         outfile.close();
-            
+
+	if (command_line_opts.profile_enabled) {
+		auto entries = Profiler::instance().entries();
+		dump_profile(entries, command_line_opts.profile_out);
+	}
 
         ////////////////////////////////////////////////////////
         return 0;

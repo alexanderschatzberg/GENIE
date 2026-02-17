@@ -582,10 +582,13 @@ void genotype_stream_pass_mem_efficient (string name){
 				}
 			}
 
-			if(use_1col_annot == true)
-				read_bed_1colannot(ifs, missing, read_Nsnp);
-			else
-				read_bed2(ifs, missing, read_Nsnp);
+			{
+				ScopedTimer timer_bed("io_read_bed_block");
+				if(use_1col_annot == true)
+					read_bed_1colannot(ifs, missing, read_Nsnp);
+				else
+					read_bed2(ifs, missing, read_Nsnp);
+			}
 			read_header = false;
 
 			for (int bin_index = 0 ; bin_index < Nbin ; bin_index++){
@@ -596,11 +599,11 @@ void genotype_stream_pass_mem_efficient (string name){
 					num_snp = allgen[bin_index].index;
 
 				if (verbose >= 2)
-					cout << "Number of SNPs in bin " << bin_index << "  = " << num_snp << endl; 
+					cout << "Number of SNPs in bin " << bin_index << "  = " << num_snp << endl;
 
 				// The case where the read block for this bin is empty
 				// Can skip this bin unless this is the last read block inside jackknife block
-				// In that case, we need to update the whole-genome statistics computed so far 
+				// In that case, we need to update the whole-genome statistics computed so far
 				// We also need to write the relevant statistics to the file
 				if (num_snp == 0)  {
 					if (block_index == num_blocks - 1){
@@ -1137,11 +1140,14 @@ void genotype_stream_pass (string name, int pass_num){
 		}
 
 		if (opt1  && pass_num == 2) {}
-		else { 
-			if(use_1col_annot == true)
-				read_bed_1colannot(ifs, missing, read_Nsnp);
-			else
-				read_bed2(ifs, missing, read_Nsnp);
+		else {
+			{
+				ScopedTimer timer_bed("io_read_bed_block");
+				if(use_1col_annot == true)
+					read_bed_1colannot(ifs, missing, read_Nsnp);
+				else
+					read_bed2(ifs, missing, read_Nsnp);
+			}
 			read_header = false;
 		}
 
@@ -1434,7 +1440,8 @@ void genotype_stream_pass (string name, int pass_num){
 		} // loop over bins
 
 		if(pass_num == 2){
-			// 	
+			ScopedTimer timer_trace("trace_assembly");
+			//
 			// Compute variance components for each jackknife subsample
 			//
 			for(int l = 0 ; l < T_Nbin ; l++)
@@ -1669,6 +1676,7 @@ void genotype_stream_pass (string name, int pass_num){
 	} // pass 1
 
 	if(pass_num == 2){
+		ScopedTimer timer_trace("trace_assembly");
 		//
 		// Compute variance components for the full sample
 		//
@@ -1838,10 +1846,13 @@ void genotype_stream_single_pass (string name) {
 			}
 		}
 
-		if(use_1col_annot == true)
-			read_bed_1colannot (ifs, missing, read_Nsnp);
-		else
-			read_bed2 (ifs, missing, read_Nsnp);
+		{
+			ScopedTimer timer_bed("io_read_bed_block");
+			if(use_1col_annot == true)
+				read_bed_1colannot (ifs, missing, read_Nsnp);
+			else
+				read_bed2 (ifs, missing, read_Nsnp);
+		}
 		read_header = false;
 
 		for (int bin_index = 0; bin_index < Nbin; bin_index++){
@@ -2155,6 +2166,7 @@ void genotype_stream_single_pass (string name) {
 
 
 	for (jack_index = 0; jack_index <= Njack ; jack_index ++){
+		ScopedTimer timer_trace("trace_assembly");
 		for(int k = 0; k < Nbin; k++)
 			if( jack_index < Njack && len[k] == jack_bin[jack_index][k])
 				jack_bin[jack_index][k] = 0;
@@ -2331,6 +2343,7 @@ void genotype_stream_single_pass (string name) {
 // If no covariates are provided, center phenotype
 //  
 void regress_covariates () {
+	ScopedTimer timer_regcov("regress_covariates");
 	if (verbose >= 3) {
 		cout << "In regress_covariates" << endl;
 	}
@@ -3000,6 +3013,8 @@ int main(int argc, char const *argv[]){
 		Enviro = Enviro.array().colwise() * mask.col(0).array();
 	}
 	//define random vector z's
+	{
+	ScopedTimer timer_rng("random_vector_init");
 	all_zb = MatrixXdr::Random (Nindv, Nz);
 
 	if (seed == -1) {
@@ -3038,6 +3053,7 @@ int main(int argc, char const *argv[]){
 			all_Uzb.col(j) = w3;
 		}
 	}
+	} // end random_vector_init timer scope
 
 	if(Annot_x_E == true){
 		nongen_Nbin = Nenv * Nbin;

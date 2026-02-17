@@ -1,4 +1,5 @@
 #include "genomult.h"
+#include "profiler.h"
 
 #include <iostream>
 #include <fstream>
@@ -12,6 +13,7 @@ using namespace std;
 // X0 : genotype matrix of Nindv X Nsnp
 // vec (matrix of dimension Nindv X 1) (usually phenotype)
 double compute_yXXy (int num_snp, MatrixXdr vec){
+	ScopedTimer timer("compute_yXXy");
 	MatrixXdr res = MatrixXdr::Zero (num_snp, 1);
 	
 	if (verbose >= 3){
@@ -46,6 +48,7 @@ double compute_yXXy (int num_snp, MatrixXdr vec){
 
 
 double compute_yVXXVy(int num_snp){
+	ScopedTimer timer("compute_yXXy");
 	MatrixXdr new_pheno_sum = new_pheno.colwise().sum();
 	MatrixXdr res(num_snp, 1);
 
@@ -66,6 +69,7 @@ double compute_yVXXVy(int num_snp){
 // X0 : genotype matrix of Nindv X Nsnp
 // Z  : Zvec (matrix of dimension Nindv X Nz) (usually random vectors)
 MatrixXdr  compute_XXz (int num_snp, MatrixXdr Zvec){
+	ScopedTimer timer("compute_XXz");
 	MatrixXdr res = MatrixXdr::Zero (num_snp, Nz);
 
 	if (verbose >= 3) {		
@@ -131,6 +135,7 @@ MatrixXdr  compute_XXz (int num_snp, MatrixXdr Zvec){
 }
 
 MatrixXdr  compute_XXUz (int num_snp){
+	ScopedTimer timer("compute_XXz");
 	res.resize(num_snp, Nz);
 
 	mm.multiply_y_pre(all_Uzb,Nz,res, false);
@@ -171,6 +176,7 @@ MatrixXdr  compute_XXUz (int num_snp){
 
 
 MatrixXdr compute_yXXy_multi (int num_snp, MatrixXdr vec, int cur_pheno_count){
+	ScopedTimer timer("compute_yXXy");
 
 	MatrixXdr pheno_sum=vec.colwise().sum();
 	MatrixXdr res = MatrixXdr::Zero (num_snp, cur_pheno_count);
@@ -213,6 +219,7 @@ MatrixXdr compute_yXXy_multi (int num_snp, MatrixXdr vec, int cur_pheno_count){
 
 
 MatrixXdr compute_yVXXVy_multi(int num_snp, MatrixXdr vec, int cur_pheno_count){
+	ScopedTimer timer("compute_yXXy");
 	MatrixXdr new_pheno_sum = vec.colwise().sum();
 	MatrixXdr res(num_snp, cur_pheno_count);
 
