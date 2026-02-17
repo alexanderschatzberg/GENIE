@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Plot profiling results from GENIE runs."""
+"""Plot profiling results from GENIE runs.
+
+Reads timing CSV files from a results directory and creates a grouped bar
+plot comparing operations across datasets.
+
+Usage:
+    python plot_profiling.py                            # defaults
+    python plot_profiling.py -i my_results/ -o plot.png
+    python plot_profiling.py --filter matvec_Xv,matvec_Xt_v
+"""
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,7 +17,7 @@ from pathlib import Path
 import argparse
 
 # Colormap for plots (change this to customize colors)
-COLORMAP = plt.cm.tab20c
+COLORMAP = plt.cm.tab20
 OPACITY = 0.95
 
 
@@ -20,22 +29,33 @@ def load_profiling_data(results_dir: Path) -> pd.DataFrame:
         df = pd.read_csv(csv_file)
         df["dataset"] = dataset
         records.append(df)
+    if not records:
+        return pd.DataFrame()
     return pd.concat(records, ignore_index=True)
 
 
-def plot_profiling(df: pd.DataFrame, output_path: Path = None):
+def plot_profiling(df: pd.DataFrame, output_path: Path = None,
+                   filter_ops: list = None):
     """Create a grouped bar plot of profiling results."""
     # Filter out empty rows
     df = df[df["name"].notna() & (df["name"] != "")]
+
+    # Apply operation filter if specified
+    if filter_ops:
+        df = df[df["name"].isin(filter_ops)]
+        if df.empty:
+            print(f"Error: no matching operations for filter {filter_ops}")
+            return
 
     datasets = sorted(df["dataset"].unique())
     operations = sorted(df["name"].unique())
 
     x = np.arange(len(datasets))
-    width = 0.8 / len(operations)
+    width = 0.8 / max(len(operations), 1)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    colors = [(*c[:3], OPACITY) for c in COLORMAP(np.linspace(0, 0.8, len(operations)))]
+    fig, ax = plt.subplots(figsize=(max(10, len(datasets) * 1.5), 6))
+    colors = [(*c[:3], OPACITY)
+              for c in COLORMAP(np.linspace(0, 1, len(operations)))]
 
     for i, op in enumerate(operations):
         times = []
@@ -53,8 +73,8 @@ def plot_profiling(df: pd.DataFrame, output_path: Path = None):
     ax.set_ylabel("Time (seconds)")
     ax.set_title("GENIE Profiling Results by Dataset")
     ax.set_xticks(x)
-    ax.set_xticklabels(datasets)
-    ax.legend(loc="upper left", fontsize=8)
+    ax.set_xticklabels(datasets, rotation=30, ha="right")
+    ax.legend(loc="upper left", fontsize=7, ncol=max(1, len(operations) // 8))
     ax.grid(axis="y", alpha=0.3)
 
     plt.tight_layout()
@@ -80,6 +100,13 @@ def main():
         default=None,
         help="Output file path (e.g., plot.png). If not specified, displays plot."
     )
+    parser.add_argument(
+        "--filter", "-f",
+        type=str,
+        default=None,
+        help="Comma-separated list of operation names to include (e.g., "
+             "matvec_Xv,matvec_Xt_v,jackknife_block)"
+    )
     args = parser.parse_args()
 
     if not args.input.exists():
@@ -91,7 +118,11 @@ def main():
         print(f"Error: No timing CSV files found in {args.input}")
         return 1
 
-    plot_profiling(df, args.output)
+    filter_ops = None
+    if args.filter:
+        filter_ops = [s.strip() for s in args.filter.split(",")]
+
+    plot_profiling(df, args.output, filter_ops)
     return 0
 
 
