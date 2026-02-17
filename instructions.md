@@ -185,15 +185,46 @@ Run GENIE with `--profile` and `--profile_out` to capture timing data:
 The output format is determined by the file extension: `.csv` for CSV,
 `.json` for JSON.
 
-**CSV output example:**
+**CSV output example** (rows sorted by total time descending; not all regions
+appear in every run):
 
 ```csv
 name,calls,total_seconds,avg_seconds,total_bytes
-jackknife_block,10,28.98,2.898,0
-matvec_Xv,600,15.23,0.0254,0
-matvec_Xt_v,400,12.11,0.0303,0
-solve_normal_equations,11,0.003,0.0003,0
-io_read_genotype,1,0.45,0.45,0
+jackknife_block,10,28.980000,2.898000,0
+jackknife_pass1,1,18.450000,18.450000,0
+matvec_Xv,600,15.230000,0.025383,0
+matvec_Xt_v,400,12.110000,0.030275,0
+jackknife_pass2,1,10.520000,10.520000,0
+compute_yXXy,200,8.340000,0.041700,0
+compute_XXz,400,7.920000,0.019800,0
+trace_assembly,11,1.230000,0.111818,0
+regress_covariates,1,0.520000,0.520000,0
+io_read_genotype,1,0.450000,0.450000,0
+io_read_bed_block,10,0.380000,0.038000,0
+random_vector_init,1,0.120000,0.120000,0
+matmult_init,1,0.085000,0.085000,0
+io_read_phenotype,1,0.023000,0.023000,0
+io_read_covariate,1,0.018000,0.018000,0
+io_read_environment,1,0.015000,0.015000,0
+io_read_annotation,1,0.012000,0.012000,0
+solve_normal_equations,11,0.003000,0.000273,0
+```
+
+**JSON output example** (when using `.json` extension):
+
+```json
+[
+  {
+    "name": "jackknife_block",
+    "calls": 10,
+    "total_seconds": 28.980000
+  },
+  {
+    "name": "jackknife_pass1",
+    "calls": 1,
+    "total_seconds": 18.450000
+  }
+]
 ```
 
 ### Batch Profiling Across Datasets
