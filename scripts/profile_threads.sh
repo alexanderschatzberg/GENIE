@@ -13,7 +13,7 @@ DATA_DIR="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 OUTPUT_DIR="${2:-$ROOT_DIR/profile_threads_results}"
-THREADS=(1 2 4 8 16 32)
+THREADS=(1 2 4 8 16 32 64 128 256 512)
 
 # Extract dataset name from path
 NAME=$(basename "$DATA_DIR")
@@ -34,7 +34,7 @@ for T in "${THREADS[@]}"; do
         -e "$DATA_DIR/environment.csv" \
         -m G+GxE \
         -k 10 \
-        -jn 10 \
+        -jn 100 \
         -t "$T" \
         -o "$OUTPUT_DIR/${NAME}_t${T}_results.out" \
         --profile \
