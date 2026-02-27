@@ -62,7 +62,7 @@ def plot_profiling(df: pd.DataFrame, output_path: Path = None,
         for dataset in datasets:
             mask = (df["dataset"] == dataset) & (df["name"] == op)
             if mask.any():
-                times.append(df.loc[mask, "total_seconds"].values[0])
+                times.append(df.loc[mask, "self_seconds"].values[0])
             else:
                 times.append(0)
 
@@ -70,7 +70,7 @@ def plot_profiling(df: pd.DataFrame, output_path: Path = None,
         ax.bar(x + offset, times, width, label=op, color=colors[i])
 
     ax.set_xlabel("Dataset")
-    ax.set_ylabel("Time (seconds)")
+    ax.set_ylabel("Self-Time (seconds)")
     ax.set_title("GENIE Profiling Results by Dataset")
     ax.set_xticks(x)
     ax.set_xticklabels(datasets, rotation=30, ha="right")
@@ -105,7 +105,7 @@ def main():
         type=str,
         default=None,
         help="Comma-separated list of operation names to include (e.g., "
-             "matvec_Xv,matvec_Xt_v,jackknife_block)"
+             "Xv,Xt_v,jackknife)"
     )
     args = parser.parse_args()
 

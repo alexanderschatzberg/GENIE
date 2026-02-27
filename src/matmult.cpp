@@ -27,7 +27,7 @@ MatMult::MatMult(genotype &xg,
 			bool xfast_mode,
 			int xnthreads,
 			int xk) {
-	ScopedTimer timer("matmult_init");
+	ScopedTimer timer("matmult_setup");
 	g = xg;
 	geno_matrix = xgeno_matrix;
 
@@ -311,7 +311,7 @@ void MatMult::multiply_y_post_naive_mem(MatrixXdr &op, int Nrows_op, MatrixXdr &
 }
 
 void MatMult::multiply_y_post(MatrixXdr &op, int Nrows_op, MatrixXdr &res, bool subtract_means) {
-	ScopedTimer timer("matvec_Xt_v");
+	ScopedTimer timer("Xt_v");
 	if (fast_mode) {
 		multiply_y_post_fast(op, Nrows_op, res, subtract_means);
 	} else {
@@ -323,7 +323,7 @@ void MatMult::multiply_y_post(MatrixXdr &op, int Nrows_op, MatrixXdr &res, bool 
 }
 
 void MatMult::multiply_y_pre(MatrixXdr &op, int Ncol_op, MatrixXdr &res, bool subtract_means) {
-	ScopedTimer timer("matvec_Xv");
+	ScopedTimer timer("Xv");
 	if (fast_mode) {
 		multiply_y_pre_fast(op, Ncol_op, res, subtract_means);
 	} else {

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <stdlib.h>
-#include <vector> 
+#include <vector>
 #include <random>
 
 #include <Eigen/Dense>
@@ -48,7 +48,7 @@ typedef Matrix<float, Dynamic, Dynamic, RowMajor> MatrixXdr;
 // If memeff = true, uses the memory efficient version
 bool memeff = false;
 
-// If opt1 = true, writes to a file after pass 1 
+// If opt1 = true, writes to a file after pass 1
 // Reads from file in pass 2
 bool opt1 = true;
 
@@ -61,7 +61,7 @@ int mem_alloc = -1;
 // Number of read blocks
 // Approximately: Nsnp/mem_Nsnp
 // Will  vary depending on the structure of jackknife blocks
-int Nreadblocks; 
+int Nreadblocks;
 
 //ENV
 // Partition the GxE component with respect to the annotations in the annotation file
@@ -79,7 +79,7 @@ MatrixXdr jack_adj_gxe;
 int blocksize;
 int hsegsize;
 double *partialsums;
-double *sum_op;		
+double *sum_op;
 double *yint_e;
 double *yint_m;
 double **y_e;
@@ -91,7 +91,7 @@ struct timespec t0;
 clock_t total_begin = clock();
 MatrixXdr pheno;
 MatrixXdr mask;
-MatrixXdr covariate;  
+MatrixXdr covariate;
 MatrixXdr Q;
 MatrixXdr v1; //W^ty
 MatrixXdr v2;            //QW^ty
@@ -105,11 +105,11 @@ int k,p,n;
 MatrixXdr means; //(p,1)
 MatrixXdr stds; //(p,1)
 MatrixXdr sum2;
-MatrixXdr sum;  
+MatrixXdr sum;
 
 ////////
-//related to phenotype	
-double y_sum; 
+//related to phenotype
+double y_sum;
 double y_mean;
 
 options command_line_opts;
@@ -119,20 +119,20 @@ bool var_normalize = false;
 bool memory_efficient = false;
 bool missing = false;
 bool fast_mode = true;
-bool use_cov = false; 
+bool use_cov = false;
 
 // Jackknife-related variables
 // Different approaches for defining the jackknife blocks
 // jack_scheme  =
 // 1: each block has constant number of SNPs (except the last). a block might span distinct chromosomes
 // 2: each block has constant number of SNPs with each block contained within a single chromosome
-// 3: each block has constant physical length with each block contained within a single chromosome. 
+// 3: each block has constant physical length with each block contained within a single chromosome.
 // For 3: physical length is specified in Mbs.
 // Default : 1
 int jack_scheme = 1;
 
 // Number of jackknife blocks
-// When jack_scheme = 2 or 3, this number will be set to 
+// When jack_scheme = 2 or 3, this number will be set to
 // actual number based on the number of SNPs
 int Njack = 1000;
 
@@ -206,11 +206,11 @@ int NC;
 int Nz = 10;
 
 
-// Sum of number of SNPs assigned to each annotation 
+// Sum of number of SNPs assigned to each annotation
 // Can be greater than or less than or equal to the number of SNPs in the bim file (for overlapping annotations)
 int Nsnp_annot = 0;
 
-// Annotation matrix for binary annotations (Number of SNPs x Number of annotations) 
+// Annotation matrix for binary annotations (Number of SNPs x Number of annotations)
 vector<vector<bool> > annot_bool;
 
 // Number of SNPs in each bin
@@ -340,12 +340,12 @@ void setup_read_blocks ()  {
 	int blockindex = 0 ;
 
     // How many read blocks in each jackknife block
-	jack_to_read_block.resize (Njack);		
+	jack_to_read_block.resize (Njack);
 
     // Which read block each SNP belongs to
 	snp_to_read_block.resize (Nsnp);
 
-	for (int i = 0; i < Njack; i++) { 
+	for (int i = 0; i < Njack; i++) {
 		int jack_Nsnp = jack_block_size[i];
 		int read_max_Nsnp = jack_Nsnp > mem_Nsnp ? mem_Nsnp: jack_Nsnp;
 		int num_blocks = jack_Nsnp/read_max_Nsnp;
@@ -358,12 +358,12 @@ void setup_read_blocks ()  {
 		for (int j = num_blocks * read_max_Nsnp; j < jack_Nsnp; j++){
 			snp_to_read_block[snpindex] = blockindex + num_blocks - 1;
 			snpindex ++ ;
-		}	
+		}
 		blockindex += num_blocks;
 	}
-	Nreadblocks = blockindex; 
+	Nreadblocks = blockindex;
 
-	if (verbose >= 2) { 
+	if (verbose >= 2) {
 		cout << "Number of read blocks = " << Nreadblocks << endl;
 
 		if (verbose >= 4){
@@ -391,7 +391,7 @@ void set_metadata() {
 void genotype_stream_pass_mem_efficient (string name){
 	MatrixXdr output_yXXy;
 	MatrixXdr output_XXz;
-	MatrixXdr tmpoutput_XXz;		
+	MatrixXdr tmpoutput_XXz;
 	MatrixXdr output_XXUz;
 	MatrixXdr output_env;
 	MatrixXdr output;
@@ -424,7 +424,7 @@ void genotype_stream_pass_mem_efficient (string name){
 
 	}
 
-	if (verbose >= 3) { 		
+	if (verbose >= 3) {
 		cout << "both_side_cov = " << both_side_cov << endl;
 		cout << "cov_add_intercept = " << cov_add_intercept << endl;
 		cout << "T_Nbin = " << T_Nbin << " Nbin = " << Nbin << " nongen_Nbin = " << nongen_Nbin << endl;
@@ -433,7 +433,7 @@ void genotype_stream_pass_mem_efficient (string name){
 		cout << "output(" << output_XXz.rows() <<"," << output_XXz.cols() << ") "<< output_XXz.sum() << endl;
 	}
 
-	if (opt1){ 
+	if (opt1){
 		string prefix = command_line_opts.OUTPUT_FILE_PATH;
 
 		if (!use_summary_genotypes) {
@@ -512,9 +512,9 @@ void genotype_stream_pass_mem_efficient (string name){
 
 	int global_block_index = 0;
 	{
-		ScopedTimer timer("jackknife_pass1");
+		ScopedTimer timer("pass1");
 	for (int jack_index = 0 ; jack_index < Njack ; jack_index++){
-		ScopedTimer timer_block("jackknife_block");
+		ScopedTimer timer_block("jackknife");
 
 		if (hetero_noise == true) {
 			output_XXz = MatrixXdr::Zero(Nindv,T_Nbin * Nz);
@@ -532,14 +532,14 @@ void genotype_stream_pass_mem_efficient (string name){
 				output_XXUz = MatrixXdr::Zero(Nindv, T_Nbin * Nz);
 			}
 			output_yXXy = MatrixXdr::Zero(T_Nbin, 1);
-		}	
+		}
 
-		int jack_Nsnp = jack_block_size [jack_index];	
+		int jack_Nsnp = jack_block_size [jack_index];
 		int read_Nsnp = jack_Nsnp > mem_Nsnp ? mem_Nsnp: jack_Nsnp;
 		int num_blocks = jack_to_read_block [jack_index];
 		int rem = jack_Nsnp - num_blocks * read_Nsnp;
 
-		if (verbose >= 1) 
+		if (verbose >= 1)
 			cout << "************Pass 1: Reading jackknife block " << jack_index << " ************" <<endl;
 
 		cout << "Pass 1: Reading jackknife block " << jack_index << endl;
@@ -557,7 +557,7 @@ void genotype_stream_pass_mem_efficient (string name){
 				cout << "read_Nsnp = " << read_Nsnp << endl;
 
 			if(use_mailman == true){
-				if (verbose >= 1) { 
+				if (verbose >= 1) {
 					cout << "Number of SNPs in each bin in jackknife block "<< jack_index << endl;
 					vectorfn::printvector (jack_bin[jack_index]); cout << endl;
 				}
@@ -583,7 +583,8 @@ void genotype_stream_pass_mem_efficient (string name){
 			}
 
 			{
-				ScopedTimer timer_bed("io_read_bed_block");
+				ScopedTimer timer_fileio("file_io");
+				ScopedTimer timer_bed("genotype");
 				if(use_1col_annot == true)
 					read_bed_1colannot(ifs, missing, read_Nsnp);
 				else
@@ -629,12 +630,12 @@ void genotype_stream_pass_mem_efficient (string name){
 						if (opt1) {
 							// Check the number of SNPs in this bin within the jackknife block
 							int tmpsnp = jack_bin[jack_index][bin_index];
-							// If the bin is also empty for the jackknife block 
+							// If the bin is also empty for the jackknife block
 							// Only need to write the number of SNPs (=0)
 							// So that this bin within the jackknnife block can be skipped in pass number 2
 							if (use_summary_genotypes){
 								double temp_yXXy = output_yXXy(bin_index, 0);
-								
+
 								if (use_ysum)
 									ysum_ofs.write((char *) (&temp_yXXy), sizeof(double));
 								else
@@ -645,11 +646,11 @@ void genotype_stream_pass_mem_efficient (string name){
 
 								// Handle non-empty bin within jackknife block
 								// First write XXz, XXUz.
-								MatrixXdr tmpoutput = output_XXz.block (0, bin_index * Nz, output_XXz.rows(), Nz);	
+								MatrixXdr tmpoutput = output_XXz.block (0, bin_index * Nz, output_XXz.rows(), Nz);
 
 								write_matrix (xsum_ofs, tmpoutput);
 								if (both_side_cov == true ) {
-									MatrixXdr tmpoutput = output_XXUz.block (0, bin_index * Nz, output_XXUz.rows(), Nz);	
+									MatrixXdr tmpoutput = output_XXUz.block (0, bin_index * Nz, output_XXUz.rows(), Nz);
 									write_matrix (xsum_ofs, tmpoutput);
 								}
 
@@ -662,7 +663,7 @@ void genotype_stream_pass_mem_efficient (string name){
 							}
 						}
 					}
-					continue; 
+					continue;
 				} // End of code to handle empty blocks
 
 				stds.resize(num_snp,1);
@@ -671,7 +672,7 @@ void genotype_stream_pass_mem_efficient (string name){
 				if(use_mailman == true){
 					for (int i = 0 ; i < num_snp ; i++)
 						means(i,0) = (double)allgen_mail[bin_index].columnsum[i]/Nindv;
-				} else	  
+				} else
 					means = allgen[bin_index].gen.rowwise().mean();
 
 
@@ -705,7 +706,7 @@ void genotype_stream_pass_mem_efficient (string name){
 
 				if (opt1 && block_index == (num_blocks - 1)) {
 					int tmpsnp = jack_bin[jack_index][bin_index];
-					MatrixXdr tmpoutput = output_XXz.block (0, bin_index * Nz, output_XXz.rows(), Nz);	
+					MatrixXdr tmpoutput = output_XXz.block (0, bin_index * Nz, output_XXz.rows(), Nz);
 					if (verbose >= 3) {
 						cout << "output(" << tmpoutput.rows() <<"," << tmpoutput.cols() << ") "<< tmpoutput.sum() << endl;
 					}
@@ -752,7 +753,7 @@ void genotype_stream_pass_mem_efficient (string name){
 
 							for (int z_index = 0 ; z_index < Nz ; z_index++){
 								XXUz.col((gxe_bin_index * 2*Nz) + Nz + z_index)+=output_env.col(z_index);   /// save whole sample
-								XXUz.col((gxe_bin_index * 2*Nz) + z_index)+=output_env.col(z_index); 
+								XXUz.col((gxe_bin_index * 2*Nz) + z_index)+=output_env.col(z_index);
 							}
 						}
 						if(both_side_cov == true)
@@ -786,12 +787,12 @@ void genotype_stream_pass_mem_efficient (string name){
 				}
 
 				if (both_side_cov == true){
-					output = compute_XXUz(num_snp); 
+					output = compute_XXUz(num_snp);
 					for (int z_index = 0 ; z_index < Nz ; z_index++)
 						output_XXUz.col(bin_index * Nz + z_index) = output_XXUz.col(bin_index * Nz + z_index) + output.col(z_index);
 
-					if (opt1 && block_index == num_blocks - 1) { 
-						MatrixXdr tmpoutput = output_XXUz.block (0, bin_index * Nz, output_XXUz.rows(), Nz);	
+					if (opt1 && block_index == num_blocks - 1) {
+						MatrixXdr tmpoutput = output_XXUz.block (0, bin_index * Nz, output_XXUz.rows(), Nz);
 
 						int rows = static_cast<int>(tmpoutput.rows());
 					    int cols = static_cast<int>(tmpoutput.cols());
@@ -800,7 +801,7 @@ void genotype_stream_pass_mem_efficient (string name){
 					if (block_index == num_blocks - 1){
 						for (int z_index = 0 ; z_index < Nz ; z_index++){
 							XXUz.col((bin_index * 2 * Nz) + Nz + z_index) += output_XXUz.col(bin_index * Nz + z_index);   /// save whole sample
-						}	 
+						}
 					}
 				}
 
@@ -815,7 +816,7 @@ void genotype_stream_pass_mem_efficient (string name){
 				} else {
 					temp_yXXy = compute_yVXXVy(num_snp);
 					output_yXXy(bin_index, 0) += temp_yXXy;
-				}				
+				}
 				if (opt1 && block_index == num_blocks - 1) {
 					temp_yXXy = output_yXXy(bin_index, 0);
 					if (use_ysum)
@@ -823,11 +824,11 @@ void genotype_stream_pass_mem_efficient (string name){
 					else
 						jack_yXXy(bin_index, jack_index) = temp_yXXy;
 				}
-				if (block_index == num_blocks - 1) 
+				if (block_index == num_blocks - 1)
 					yXXy(bin_index,1) += output_yXXy(bin_index, 0);
 
 
-				if (verbose >= 2) { 
+				if (verbose >= 2) {
 					cout << "Pass 1: " << jack_index << " " << block_index << " " << bin_index << "\tXXz(" << XXz.rows() <<"," << XXz.cols() << ") "<< XXz.sum() << endl;
 					cout << "Pass 1: " << jack_index << " " << block_index << " " << bin_index << "\ttemp_yXXy : " << temp_yXXy << endl;
 					cout << "Pass 1: " << jack_index <<" " << block_index << " " << bin_index << "\tyXXy(" << yXXy.rows() <<"," << yXXy.cols() << ") "<< yXXy.sum() << endl;
@@ -867,7 +868,7 @@ void genotype_stream_pass_mem_efficient (string name){
 		} // loop over read blocks
 
 	}//end loop over jackknife blocks
-	}  // end profiling scope for jackknife_pass1
+	}  // end profiling scope for pass1
 	cout << "Finished reading and computing over all blocks" << endl;
 	cout << endl;
 
@@ -931,7 +932,7 @@ void genotype_stream_pass_mem_efficient (string name){
 			XXz.col((bin_index * 2 * Nz) + z_index) = XXz.col((bin_index * 2 * Nz) + Nz + z_index);
 			if(both_side_cov == true){
 				UXXz.col((bin_index * 2*Nz) + z_index) = UXXz.col((bin_index * 2 * Nz) + Nz + z_index);
-				XXUz.col((bin_index * 2*Nz) + z_index) = XXUz.col((bin_index * 2 * Nz) + Nz + z_index);  
+				XXUz.col((bin_index * 2*Nz) + z_index) = XXUz.col((bin_index * 2 * Nz) + Nz + z_index);
 			}
 		}
 		yXXy(bin_index,0)= yXXy(bin_index,1);
@@ -945,7 +946,7 @@ void genotype_stream_pass_mem_efficient (string name){
 			for (int bin_index = 0 ; bin_index < T_Nbin ; bin_index++){
 				MatrixXdr tmpoutput = XXz.block (0, bin_index * 2 * Nz + Nz, XXz.rows(), Nz);
 				write_matrix (wgxsum_ofs, tmpoutput);
-				
+
 				if (both_side_cov) {
 					tmpoutput = UXXz.block (0, bin_index * 2 * Nz + Nz, UXXz.rows(), Nz);
 					write_matrix (wgxsum_ofs, tmpoutput);
@@ -969,8 +970,8 @@ void genotype_stream_pass (string name, int pass_num){
 		cout << "cov_add_intercept = " << cov_add_intercept << endl;
 		cout << "T_Nbin = " << T_Nbin << " Nbin = " << Nbin << " nongen_Nbin = " << nongen_Nbin << endl;
 		cout << "Nz = " << Nz << endl;
-	}	
-	if (opt1){ 
+	}
+	if (opt1){
 		string prefix = command_line_opts.OUTPUT_FILE_PATH;
 		if (use_summary_genotypes) {
 			xsum_path = xsumfilepath + ".xsum";
@@ -979,17 +980,17 @@ void genotype_stream_pass (string name, int pass_num){
 			xsum_path = prefix + ".xsum";
 		ysum_path = prefix + ".ysum";
 		if (pass_num==1) {
-			if (!use_summary_genotypes)  
+			if (!use_summary_genotypes)
 				xsum_ofs.open(xsum_path.c_str(), std::ios_base::out);
-			if (use_ysum)	
+			if (use_ysum)
 				ysum_ofs.open(ysum_path.c_str(), std::ios_base::out);
 		} else {
 			xsum_ifs.open(xsum_path.c_str(), std::ios_base::in);
-			if (!xsum_ifs.is_open()) {	
+			if (!xsum_ifs.is_open()) {
 				cerr << "Error reading file "<< xsum_path <<endl;
 				exit(1);
 			}
-			if (use_ysum)	
+			if (use_ysum)
 				ysum_ifs.open(ysum_path.c_str(), std::ios_base::in);
 		}
 	}
@@ -1067,7 +1068,7 @@ void genotype_stream_pass (string name, int pass_num){
 		if (use_summary_genotypes){
 
 			wgxsum_ifs.open(wgxsum_path.c_str(), std::ios_base::in);
-			if (!wgxsum_ifs.is_open()) {	
+			if (!wgxsum_ifs.is_open()) {
 				cerr << "Error reading file "<< wgxsum_path <<endl;
 				exit(1);
 			}
@@ -1104,13 +1105,13 @@ void genotype_stream_pass (string name, int pass_num){
 
 	cout << "************ Making pass number "<< pass_num << " over genotypes ************" << endl;
 	{
-		ScopedTimer timer(pass_num == 1 ? "jackknife_pass1" : "jackknife_pass2");
+		ScopedTimer timer(pass_num == 1 ? "pass1" : "pass2");
 	for (int jack_index = 0 ; jack_index < Njack ; jack_index++){
-		ScopedTimer timer_block("jackknife_block");
+		ScopedTimer timer_block("jackknife");
 
-		int read_Nsnp = jack_block_size[jack_index];	
+		int read_Nsnp = jack_block_size[jack_index];
 		cout << "Pass "<< pass_num << ": Reading jackknife block " << jack_index << endl;
-		
+
 		if (verbose >= 1)  {
 			cout << "************Pass " << pass_num << ": Reading jackknife block " << jack_index << " ************" <<endl;
 			if (verbose >= 2)
@@ -1142,7 +1143,8 @@ void genotype_stream_pass (string name, int pass_num){
 		if (opt1  && pass_num == 2) {}
 		else {
 			{
-				ScopedTimer timer_bed("io_read_bed_block");
+				ScopedTimer timer_fileio("file_io");
+				ScopedTimer timer_bed("genotype");
 				if(use_1col_annot == true)
 					read_bed_1colannot(ifs, missing, read_Nsnp);
 				else
@@ -1151,16 +1153,16 @@ void genotype_stream_pass (string name, int pass_num){
 			read_header = false;
 		}
 
-		if (verbose >= 1) { 
+		if (verbose >= 1) {
 			cout << "Number of SNPs in each bin in jackknife block "<< jack_index << endl;
 			vectorfn::printvector (jack_bin[jack_index]); cout << endl;
 		}
 
 		for (int bin_index = 0 ; bin_index < Nbin ; bin_index++){
 			int num_snp;
-			if (opt1 && pass_num == 2) { 
-				xsum_ifs.read((char *) (&num_snp), sizeof(int)); 
-			} else { 
+			if (opt1 && pass_num == 2) {
+				xsum_ifs.read((char *) (&num_snp), sizeof(int));
+			} else {
 				if (use_mailman == true)
 					num_snp = allgen_mail[bin_index].index;
 				else
@@ -1168,18 +1170,18 @@ void genotype_stream_pass (string name, int pass_num){
 			}
 
 			if (verbose >= 2)
-				cout << "Number of SNPs in bin " << bin_index << "  = " << num_snp << endl; 
-	
+				cout << "Number of SNPs in bin " << bin_index << "  = " << num_snp << endl;
+
 			// Skip empty bin
 			if (num_snp == 0)  {
-				if (opt1 && pass_num == 1) 
+				if (opt1 && pass_num == 1)
 					xsum_ofs.write((char *) (&num_snp), sizeof(int));
 				continue;
 			}
 
 			if (opt1 && pass_num==2) {
 				read_matrix (xsum_ifs, output);
-				
+
 				if (verbose >= 2) {
 					cout << "Pass "<< pass_num << ": " << jack_index << " " << bin_index << "\toutput(" << output.rows() <<"," << output.cols() << ") "<< output.sum() << endl;
 				}
@@ -1190,7 +1192,7 @@ void genotype_stream_pass (string name, int pass_num){
 				if(use_mailman == true){
 					for (int i = 0 ; i < num_snp ; i++)
 						means(i,0) = (double)allgen_mail[bin_index].columnsum[i]/Nindv;
-				} else	  
+				} else
 					means = allgen[bin_index].gen.rowwise().mean();
 
 
@@ -1210,7 +1212,7 @@ void genotype_stream_pass (string name, int pass_num){
 				mm = MatMult(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
 				output = compute_XXz(num_snp, all_zb);
 
-				if (verbose >= 2) 
+				if (verbose >= 2)
 					cout << "Pass "<< pass_num << ": " << jack_index << " " << bin_index << "\toutput(" << output.rows() <<"," << output.cols() << ") " << output.sum() << endl;
 
 				if (opt1) {
@@ -1222,7 +1224,7 @@ void genotype_stream_pass (string name, int pass_num){
 			// begin gxe computations
 			// This code block has not been tested for the memory optimized setting
 			MatrixXdr scaled_pheno;
-			if (gen_by_env == true) { 
+			if (gen_by_env == true) {
 				// Not tested
 				if (verbose >= 3) {
 					cout << "In gxe" << endl;
@@ -1238,9 +1240,9 @@ void genotype_stream_pass (string name, int pass_num){
 						output_env = output_env.array().colwise() * Enviro.col(env_index).array();
 						if (opt1) {
 							write_matrix (xsum_ofs, output_env);
-						}	
+						}
 					}
-					
+
 
 					int gxe_bin_index;
 					if(Annot_x_E == true)
@@ -1253,7 +1255,7 @@ void genotype_stream_pass (string name, int pass_num){
 							XXz.col((gxe_bin_index * 2*Nz) + Nz + z_index)+=output_env.col(z_index);   /// save whole sample
 							XXz.col((gxe_bin_index * 2*Nz) + z_index)+=output_env.col(z_index);
 						}
-						else 
+						else
 						// if(num_snp != len[bin_index])
 							XXz.col((gxe_bin_index * 2 * Nz) + z_index) = XXz.col((gxe_bin_index * 2*Nz) + z_index) - output_env.col (z_index);   /// save corresponding jack contrib
 
@@ -1282,13 +1284,13 @@ void genotype_stream_pass (string name, int pass_num){
 							output_env = output_env.array().colwise() * Enviro.col(env_index).array();
 							if (opt1) {
 								write_matrix (xsum_ofs, output_env);
-							}	
+							}
 						}
 
 						for (int z_index = 0 ; z_index < Nz ; z_index++){
 							if(pass_num == 1){
 								XXUz.col((gxe_bin_index * 2 * Nz) + Nz + z_index) += output_env.col(z_index);   /// save whole sample
-								XXUz.col((gxe_bin_index * 2 * Nz) + z_index) += output_env.col(z_index); 
+								XXUz.col((gxe_bin_index * 2 * Nz) + z_index) += output_env.col(z_index);
 							}
 							else
 								XXUz.col((gxe_bin_index * 2 * Nz) + z_index) = XXUz.col((gxe_bin_index * 2*Nz) + z_index)-output_env.col(z_index);
@@ -1302,8 +1304,8 @@ void genotype_stream_pass (string name, int pass_num){
 
 					double temp_e_yxxy;
 					if (opt1 && pass_num == 2)  {
-						if (use_ysum) 
-							ysum_ifs.read((char *) (&temp_e_yxxy), sizeof(double)); 
+						if (use_ysum)
+							ysum_ifs.read((char *) (&temp_e_yxxy), sizeof(double));
 						else
 							temp_e_yxxy = jack_yXXy(gxe_bin_index, jack_index);
 					} else {
@@ -1320,8 +1322,8 @@ void genotype_stream_pass (string name, int pass_num){
 						yXXy(gxe_bin_index, 1) += temp_e_yxxy;
 						yXXy(gxe_bin_index, 0) += temp_e_yxxy;
 					}
-					else 
-						yXXy(gxe_bin_index, 0) = yXXy(gxe_bin_index,0) - temp_e_yxxy;      
+					else
+						yXXy(gxe_bin_index, 0) = yXXy(gxe_bin_index,0) - temp_e_yxxy;
 
 				}
 			}//end gxe computations
@@ -1352,10 +1354,10 @@ void genotype_stream_pass (string name, int pass_num){
 			}
 
 			if (both_side_cov == true){
-				if (opt1 && pass_num == 2) { 
+				if (opt1 && pass_num == 2) {
 					read_matrix (xsum_ifs, output);
 				} else {
-					output = compute_XXUz(num_snp); 
+					output = compute_XXUz(num_snp);
 					if (opt1) {
 						write_matrix (xsum_ofs, output);
 					}
@@ -1366,14 +1368,14 @@ void genotype_stream_pass (string name, int pass_num){
 					}
 					else //if(num_snp != len[bin_index])
 						XXUz.col((bin_index * 2 * Nz) + z_index) = XXUz.col((bin_index * 2*Nz) + Nz + z_index)-output.col(z_index);
-				}	 
+				}
 			}
 
 			//compute yXXy
 			double temp_yXXy;
-			if (opt1 && pass_num == 2) { 
-				if (use_ysum) 
-					ysum_ifs.read((char *) (&temp_yXXy), sizeof(double)); 
+			if (opt1 && pass_num == 2) {
+				if (use_ysum)
+					ysum_ifs.read((char *) (&temp_yXXy), sizeof(double));
 				else
 					temp_yXXy = jack_yXXy(bin_index, jack_index);
 			} else {
@@ -1383,7 +1385,7 @@ void genotype_stream_pass (string name, int pass_num){
 					temp_yXXy = compute_yXXy(num_snp, pheno);
 				else
 					temp_yXXy = compute_yVXXVy(num_snp);
-					
+
 				if (opt1) {
 					jack_yXXy(bin_index, jack_index) = temp_yXXy;
 					ysum_ofs.write((char *) (&temp_yXXy), sizeof(double));
@@ -1396,7 +1398,7 @@ void genotype_stream_pass (string name, int pass_num){
 			if(pass_num == 1){
 				yXXy(bin_index, 1) += temp_yXXy;
 			}
-			else 
+			else
 				yXXy(bin_index, 0)= yXXy(bin_index , 1) - temp_yXXy;
 
 
@@ -1408,7 +1410,7 @@ void genotype_stream_pass (string name, int pass_num){
 					cout << "Pass " << pass_num << ": " << jack_index <<" " << bin_index << "\tyXXy " << yXXy(0,1) <<"," << yXXy(1,1) << endl;
 			}
 
-			if (opt1 && pass_num == 2){ 
+			if (opt1 && pass_num == 2){
 			} else {
 				mm.clean_up();
 				if(use_mailman == true){
@@ -1440,7 +1442,7 @@ void genotype_stream_pass (string name, int pass_num){
 		} // loop over bins
 
 		if(pass_num == 2){
-			ScopedTimer timer_trace("trace_assembly");
+			ScopedTimer timer_trace("trace_estimation");
 			//
 			// Compute variance components for each jackknife subsample
 			//
@@ -1467,8 +1469,8 @@ void genotype_stream_pass (string name, int pass_num){
 				if(both_side_cov == true){
 					B1 = XXz.block(0,(i * 2*Nz),Nindv,Nz);
 					C1 = B1.array() * all_Uzb.array();
-					C2 = C1.colwise().sum();	
-					tk_res = C2.sum();  
+					C2 = C1.colwise().sum();
+					tk_res = C2.sum();
 
 					tk_res = tk_res / (len[i]-jack_bin[jack_index][i]) / Nz;
 
@@ -1514,7 +1516,7 @@ void genotype_stream_pass (string name, int pass_num){
 			X_l << A_trs,b_trk,b_trk.transpose(),NC;
 			Y_r << c_yky,yy;
 			{
-				ScopedTimer timer("solve_normal_equations");
+				ScopedTimer timer("linear_solve");
 				herit = X_l.colPivHouseholderQr().solve(Y_r);
 			}
 
@@ -1530,7 +1532,7 @@ void genotype_stream_pass (string name, int pass_num){
 					cout << "Yr[" << jack_index << "] = " << Y_r << endl;
 					double relative_error = (X_l * herit - Y_r).norm() / Y_r.norm(); // norm() is L2 norm
 					cout << "The relative error is: " << relative_error << endl;
-					
+
 					#ifdef USE_DOUBLE
 						JacobiSVD<MatrixXd> svd(X_l);
 					#else
@@ -1570,7 +1572,7 @@ void genotype_stream_pass (string name, int pass_num){
 			for(int i = 0 ; i<(T_Nbin + 1);i++)
 				if(i == T_Nbin)
 					jack_adj_gxe(i,jack_index) = jack(i,jack_index) * NC;
-				else    
+				else
 					jack_adj_gxe(i,jack_index) = jack(i,jack_index) * b_trk(i,0);
 
 
@@ -1645,7 +1647,7 @@ void genotype_stream_pass (string name, int pass_num){
 			}
 		}
 
-		if (verbose >= 1) { 
+		if (verbose >= 1) {
 			cout << "Size of bins :" << endl;
 			if (hetero_noise == true) {
 				for(int i = 0 ; i < Nbin + nongen_Nbin + Nenv ; i++)
@@ -1667,7 +1669,7 @@ void genotype_stream_pass (string name, int pass_num){
 				XXz.col((bin_index * 2*Nz) + z_index) = XXz.col((bin_index * 2*Nz) + Nz + z_index);
 				if(both_side_cov == true){
 					UXXz.col((bin_index * 2*Nz) + z_index) = UXXz.col((bin_index * 2*Nz) + Nz + z_index);
-					XXUz.col((bin_index * 2*Nz) + z_index) = XXUz.col((bin_index * 2*Nz) + Nz + z_index);  
+					XXUz.col((bin_index * 2*Nz) + z_index) = XXUz.col((bin_index * 2*Nz) + Nz + z_index);
 				}
 			}
 			yXXy(bin_index,0)= yXXy(bin_index,1);
@@ -1676,7 +1678,7 @@ void genotype_stream_pass (string name, int pass_num){
 	} // pass 1
 
 	if(pass_num == 2){
-		ScopedTimer timer_trace("trace_assembly");
+		ScopedTimer timer_trace("trace_estimation");
 		//
 		// Compute variance components for the full sample
 		//
@@ -1727,7 +1729,7 @@ void genotype_stream_pass (string name, int pass_num){
 				A_trs(i,j) = trkij;
 				A_trs(j,i) = trkij;
 			}
-		} // loop over bins     
+		} // loop over bins
 
 
 		X_l << A_trs,b_trk,b_trk.transpose(),NC;
@@ -1742,7 +1744,7 @@ void genotype_stream_pass (string name, int pass_num){
 		}
 
 		{
-			ScopedTimer timer("solve_normal_equations");
+			ScopedTimer timer("linear_solve");
 			herit = X_l.colPivHouseholderQr().solve(Y_r);
 		}
 
@@ -1765,11 +1767,11 @@ void genotype_stream_pass (string name, int pass_num){
 	} // pass 2
 
 
-	if (opt1){ 
+	if (opt1){
 		if (pass_num==1)  {
-			if (!use_summary_genotypes) 
+			if (!use_summary_genotypes)
 				xsum_ofs.close();
-			if (use_ysum) 
+			if (use_ysum)
 				ysum_ofs.close();
 		} else {
 			xsum_ifs.close();
@@ -1812,7 +1814,7 @@ void genotype_stream_single_pass (string name) {
 	MatrixXdr w3;
 
 	for (int jack_index = 0; jack_index < Njack; jack_index ++){
-		ScopedTimer timer_block("jackknife_block");
+		ScopedTimer timer_block("jackknife");
 		int read_Nsnp = jack_block_size[jack_index];
 		cout << "Reading jackknife block " << jack_index << endl;
 		if (verbose >= 1)  {
@@ -1823,31 +1825,35 @@ void genotype_stream_single_pass (string name) {
 
 
 		//		int read_Nsnp = (jack_index<(Njack-1)) ? (step_size) : (step_size+step_size_rem);
-		if(use_mailman == true){
-			for (int i = 0; i < Nbin; i++){
-				allgen_mail[i].segment_size_hori = floor(log(Nindv)/log(3)) - 2 ;
-				allgen_mail[i].Nsegments_hori = ceil(jack_bin[jack_index][i]*1.0/(allgen_mail[i].segment_size_hori*1.0));
-				allgen_mail[i].p.resize(allgen_mail[i].Nsegments_hori,std::vector<int>(Nindv));
-				allgen_mail[i].not_O_i.resize(jack_bin[jack_index][i]);
-				allgen_mail[i].not_O_j.resize(Nindv);
-				allgen_mail[i].index = 0;
-				allgen_mail[i].Nsnp = jack_bin[jack_index][i];
-				allgen_mail[i].Nindv = Nindv;
+		{
+			ScopedTimer timer("matrix_setup");
+			if(use_mailman == true){
+				for (int i = 0; i < Nbin; i++){
+					allgen_mail[i].segment_size_hori = floor(log(Nindv)/log(3)) - 2 ;
+					allgen_mail[i].Nsegments_hori = ceil(jack_bin[jack_index][i]*1.0/(allgen_mail[i].segment_size_hori*1.0));
+					allgen_mail[i].p.resize(allgen_mail[i].Nsegments_hori,std::vector<int>(Nindv));
+					allgen_mail[i].not_O_i.resize(jack_bin[jack_index][i]);
+					allgen_mail[i].not_O_j.resize(Nindv);
+					allgen_mail[i].index = 0;
+					allgen_mail[i].Nsnp = jack_bin[jack_index][i];
+					allgen_mail[i].Nindv = Nindv;
 
-				allgen_mail[i].columnsum.resize(jack_bin[jack_index][i],1);
-				for (int index_temp = 0; index_temp < jack_bin[jack_index][i]; index_temp++)
-					allgen_mail[i].columnsum[index_temp] = 0;
+					allgen_mail[i].columnsum.resize(jack_bin[jack_index][i],1);
+					for (int index_temp = 0; index_temp < jack_bin[jack_index][i]; index_temp++)
+						allgen_mail[i].columnsum[index_temp] = 0;
+				}
 			}
-		}
-		else{
-			for (int bin_index = 0;bin_index < Nbin; bin_index++){
-				allgen[bin_index].gen.resize(jack_bin[jack_index][bin_index],Nindv);
-				allgen[bin_index].index = 0;
+			else{
+				for (int bin_index = 0;bin_index < Nbin; bin_index++){
+					allgen[bin_index].gen.resize(jack_bin[jack_index][bin_index],Nindv);
+					allgen[bin_index].index = 0;
+				}
 			}
 		}
 
 		{
-			ScopedTimer timer_bed("io_read_bed_block");
+			ScopedTimer timer_fileio("file_io");
+			ScopedTimer timer_bed("genotype");
 			if(use_1col_annot == true)
 				read_bed_1colannot (ifs, missing, read_Nsnp);
 			else
@@ -1856,6 +1862,7 @@ void genotype_stream_single_pass (string name) {
 		read_header = false;
 
 		for (int bin_index = 0; bin_index < Nbin; bin_index++){
+			ScopedTimer timer("bins");
 			int num_snp;
 			if (use_mailman == true)
 				num_snp = allgen_mail[bin_index].index;
@@ -1863,70 +1870,83 @@ void genotype_stream_single_pass (string name) {
 				num_snp = allgen[bin_index].index;
 
 			if(num_snp != 0){
-				stds.resize(num_snp, 1);
-				means.resize(num_snp, 1);
+				{
+					ScopedTimer timer("matrix_setup");
+					stds.resize(num_snp, 1);
+					means.resize(num_snp, 1);
 
-				if(use_mailman == true){
+					if(use_mailman == true){
+						for (int i = 0; i < num_snp; i++)
+							means(i,0) = (double)allgen_mail[bin_index].columnsum[i]/Nindv;
+					}
+					else
+						means = allgen[bin_index].gen.rowwise().mean();
+
+
 					for (int i = 0; i < num_snp; i++)
-						means(i,0) = (double)allgen_mail[bin_index].columnsum[i]/Nindv;
-				}			
-				else	  
-					means = allgen[bin_index].gen.rowwise().mean();
+						stds(i,0) = 1/sqrt((means(i,0)*(1-(0.5*means(i,0)))));
 
+					if (use_mailman == true){
+						g = allgen_mail[bin_index];
+						g.segment_size_hori = floor(log(Nindv)/log(3)) - 2 ;
+						g.Nsegments_hori = ceil(jack_bin[jack_index][bin_index]*1.0/(g.segment_size_hori*1.0));
+						g.p.resize(g.Nsegments_hori,std::vector<int>(Nindv));
+						g.not_O_i.resize(jack_bin[jack_index][bin_index]);
+						g.not_O_j.resize(Nindv);
+						initial_var();
 
-				for (int i = 0; i < num_snp; i++)
-					stds(i,0) = 1/sqrt((means(i,0)*(1-(0.5*means(i,0)))));
+					}else{
+						gen = allgen[bin_index].gen;
 
-				if (use_mailman == true){
-					g = allgen_mail[bin_index];
-					g.segment_size_hori = floor(log(Nindv)/log(3)) - 2 ;
-					g.Nsegments_hori = ceil(jack_bin[jack_index][bin_index]*1.0/(g.segment_size_hori*1.0));
-					g.p.resize(g.Nsegments_hori,std::vector<int>(Nindv));
-					g.not_O_i.resize(jack_bin[jack_index][bin_index]);
-					g.not_O_j.resize(Nindv);
-					initial_var();
+					}
+					mm = MatMult(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
+				}
 
-				}else{
-					gen = allgen[bin_index].gen;
-
-				} 
-				mm = MatMult(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
-				// cout << "here1" << endl;
-				output = compute_XXz(num_snp,all_zb);
-				// cout << "here2" << endl;
+				{
+					ScopedTimer timer_comp("compute");
+					ScopedTimer timer_xxz("XXz");
+					// cout << "here1" << endl;
+					output = compute_XXz(num_snp,all_zb);
+					// cout << "here2" << endl;
+				}
 
 				///gxe computations
 				MatrixXdr scaled_pheno;
 				if (gen_by_env == true) {
+					ScopedTimer timer("compute_gxe");
 					for (int env_index = 0; env_index < Nenv; env_index++){
-						MatrixXdr env_all_zb = all_zb.array().colwise()*Enviro.col(env_index).array();                                   
-						output_env = compute_XXz (num_snp, env_all_zb);                                   
-						output_env = output_env.array().colwise()*Enviro.col(env_index).array();
-
 						int gxe_bin_index;
-						if(Annot_x_E == true)  
-							gxe_bin_index = Nbin+(env_index*Nbin)+bin_index;
-						else
-							gxe_bin_index = Nbin+env_index;			
+						{
+							ScopedTimer timer("UXXz");
+							MatrixXdr env_all_zb = all_zb.array().colwise()*Enviro.col(env_index).array();
+							output_env = compute_XXz (num_snp, env_all_zb);
+							output_env = output_env.array().colwise()*Enviro.col(env_index).array();
 
-						for (int z_index = 0; z_index < Nz; z_index++){
-							XXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(jack_index*Nz)+z_index) += output_env.col(z_index);	
-							XXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(Njack*Nz)+z_index) += output_env.col(z_index);
+							if(Annot_x_E == true)
+								gxe_bin_index = Nbin+(env_index*Nbin)+bin_index;
+							else
+								gxe_bin_index = Nbin+env_index;
 
-							if(both_side_cov == true) {
-								vec1 = output_env.col(z_index);
-								w1 = covariate.transpose() * vec1;
-								w2 = Q * w1;
-								w3 = covariate * w2;
-								//if(num_snp!=len[bin_index])
-								UXXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(jack_index*Nz)+z_index) += w3;
-								UXXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(Njack*Nz)+z_index) += w3;
+							for (int z_index = 0; z_index < Nz; z_index++){
+								XXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(jack_index*Nz)+z_index) += output_env.col(z_index);
+								XXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(Njack*Nz)+z_index) += output_env.col(z_index);
+
+								if(both_side_cov == true) {
+									vec1 = output_env.col(z_index);
+									w1 = covariate.transpose() * vec1;
+									w2 = Q * w1;
+									w3 = covariate * w2;
+									//if(num_snp!=len[bin_index])
+									UXXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(jack_index*Nz)+z_index) += w3;
+									UXXz.col(((gxe_bin_index)*(Njack+1)*Nz)+(Njack*Nz)+z_index) += w3;
+								}
+
 							}
-
 						}
 
 
 						if (both_side_cov==true){
+							ScopedTimer timer("XXUz");
 							MatrixXdr env_all_Uzb = all_Uzb.array().colwise()*Enviro.col(env_index).array();
 							output_env = compute_XXz(num_snp,env_all_Uzb);
 							output_env = output_env.array().colwise()*Enviro.col(env_index).array();
@@ -1936,99 +1956,117 @@ void genotype_stream_single_pass (string name) {
 								XXUz.col(((gxe_bin_index)*(Njack+1)*Nz)+(Njack*Nz)+z_index) += output_env.col(z_index);   /// save whole sample
 							}
 						}
-						if(both_side_cov==true)
-							scaled_pheno = new_pheno.array()*Enviro.col(env_index).array();
-						else
-							scaled_pheno = pheno.array()*Enviro.col(env_index).array();
 
-						double temp = compute_yXXy(num_snp,scaled_pheno);
-						yXXy(gxe_bin_index,jack_index) += temp;
-						yXXy(gxe_bin_index,Njack) += temp;
+						{
+							ScopedTimer timer("yXXy");
+							if(both_side_cov==true)
+								scaled_pheno = new_pheno.array()*Enviro.col(env_index).array();
+							else
+								scaled_pheno = pheno.array()*Enviro.col(env_index).array();
+
+							double temp = compute_yXXy(num_snp,scaled_pheno);
+							yXXy(gxe_bin_index,jack_index) += temp;
+							yXXy(gxe_bin_index,Njack) += temp;
+						}
 					}
 				}
 				////end gxe computation
 
-				for (int z_index = 0; z_index < Nz; z_index++){
-					// per-block contribution (overwrite)
-					XXz.col((bin_index*(Njack+1)*Nz) + (jack_index*Nz) + z_index) = output.col(z_index);
-					// whole-sample accumulator (+=)
-					XXz.col((bin_index*(Njack+1)*Nz) + (Njack*Nz)   + z_index) += output.col(z_index);
-					if(both_side_cov == true) {
-						vec1 = output.col(z_index);
-						w1 = covariate.transpose()*vec1;
-						w2 = Q * w1;
-						w3 = covariate * w2;
-						// if(num_snp != len[bin_index])
-							UXXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = w3;
-						UXXz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index) += w3;
+				{
+					ScopedTimer timer("compute");
+					{
+						ScopedTimer timer("UXXz");
+						for (int z_index = 0; z_index < Nz; z_index++){
+							// per-block contribution (overwrite)
+							XXz.col((bin_index*(Njack+1)*Nz) + (jack_index*Nz) + z_index) = output.col(z_index);
+							// whole-sample accumulator (+=)
+							XXz.col((bin_index*(Njack+1)*Nz) + (Njack*Nz)   + z_index) += output.col(z_index);
+							if(both_side_cov == true) {
+								vec1 = output.col(z_index);
+								w1 = covariate.transpose()*vec1;
+								w2 = Q * w1;
+								w3 = covariate * w2;
+								// if(num_snp != len[bin_index])
+									UXXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = w3;
+								UXXz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index) += w3;
+							}
+
+						}
 					}
 
-				}
+					if (both_side_cov == true){
+						ScopedTimer timer("XXUz");
+						output=compute_XXUz(num_snp);
+						for (int z_index = 0; z_index < Nz; z_index++){
+							// if(num_snp != len[bin_index])
+								XXUz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = output.col(z_index);
+							XXUz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index) += output.col(z_index);   /// save whole sample
+						}
+					}
 
-				if (both_side_cov == true){
-					output=compute_XXUz(num_snp); 
-					for (int z_index = 0; z_index < Nz; z_index++){
-						// if(num_snp != len[bin_index])
-							XXUz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = output.col(z_index);
-						XXUz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index) += output.col(z_index);   /// save whole sample
+					//compute yXXy
+
+					{
+						ScopedTimer timer("yXXy");
+						if(both_side_cov == false)
+							yXXy(bin_index, jack_index) = compute_yXXy(num_snp,pheno);
+						else
+							yXXy(bin_index, jack_index) = compute_yVXXVy(num_snp);
+
+						yXXy(bin_index, Njack) += yXXy(bin_index,jack_index);
+
+						if(num_snp == len[bin_index])
+							yXXy(bin_index, jack_index) = 0;
+					}
+
+
+
+					if (verbose >= 2) {
+						cout << jack_index << " " << bin_index << "\tXXz(" << XXz.rows() <<"," << XXz.cols() << ") "<< XXz.sum() << endl;
+						cout << jack_index << " " << bin_index << "\tyXXy(" << yXXy.rows() <<"," << yXXy.cols() << ") "<< yXXy.sum() << endl;
+						if (yXXy.rows () > 1)
+							cout << jack_index <<" " << bin_index << "\tyXXy " << yXXy(0,1) <<"," << yXXy(1,1) << endl;
+					}
+
+					//compute Xz
+
+					if (verbose >= 2) {
+						cout << num_snp << " SNPs in bin "<< bin_index<< " of jackknife block  " << jack_index << endl;
+						cout << "Reading and computing bin " << bin_index << "  of jackknife block " << jack_index << " completed" << endl;
 					}
 				}
 
-				//compute yXXy
+				{
+					ScopedTimer timer("matrix_cleanup");
+					mm.clean_up();
+					if(use_mailman==true){
+						delete[] sum_op;
+						delete[] partialsums;
+						delete[] yint_e;
+						delete[] yint_m;
+						for (int i  = 0 ; i < hsegsize; i++)
+							delete[] y_m [i];
+						delete[] y_m;
 
-				if(both_side_cov == false)
-					yXXy(bin_index, jack_index) = compute_yXXy(num_snp,pheno);
-				else
-					yXXy(bin_index, jack_index) = compute_yVXXVy(num_snp);
+						for (int i  = 0 ; i < g.Nindv; i++)
+							delete[] y_e[i];
+						delete[] y_e;
 
-				yXXy(bin_index, Njack) += yXXy(bin_index,jack_index);
-
-				if(num_snp == len[bin_index])
-					yXXy(bin_index, jack_index) = 0;
-
-
-
-				if (verbose >= 2) {
-					cout << jack_index << " " << bin_index << "\tXXz(" << XXz.rows() <<"," << XXz.cols() << ") "<< XXz.sum() << endl;
-					cout << jack_index << " " << bin_index << "\tyXXy(" << yXXy.rows() <<"," << yXXy.cols() << ") "<< yXXy.sum() << endl;
-					if (yXXy.rows () > 1)
-						cout << jack_index <<" " << bin_index << "\tyXXy " << yXXy(0,1) <<"," << yXXy(1,1) << endl;
-				}
-
-				//compute Xz
-
-				if (verbose >= 2) {
-					cout << num_snp << " SNPs in bin "<< bin_index<< " of jackknife block  " << jack_index << endl;   
-					cout << "Reading and computing bin " << bin_index << "  of jackknife block " << jack_index << " completed" << endl;
-				}
-				mm.clean_up();
-				if(use_mailman==true){
-					delete[] sum_op;
-					delete[] partialsums;
-					delete[] yint_e;
-					delete[] yint_m;
-					for (int i  = 0 ; i < hsegsize; i++)
-						delete[] y_m [i];
-					delete[] y_m;
-
-					for (int i  = 0 ; i < g.Nindv; i++)
-						delete[] y_e[i];
-					delete[] y_e;
-
-					std::vector< std::vector<int> >().swap(g.p);
-					std::vector< std::vector<int> >().swap(g.not_O_j);
-					std::vector< std::vector<int> >().swap(g.not_O_i);
-					std::vector< std::vector<int> >().swap(allgen_mail[bin_index].p);
-					std::vector< std::vector<int> >().swap(allgen_mail[bin_index].not_O_j);
-					std::vector< std::vector<int> >().swap(allgen_mail[bin_index].not_O_i);
-					g.columnsum.clear();
-					g.columnsum2.clear();
-					g.columnmeans.clear();
-					g.columnmeans2.clear();
-					allgen_mail[bin_index].columnsum.clear();
-					allgen_mail[bin_index].columnsum2.clear();
-					allgen_mail[bin_index].columnmeans.clear();
-					allgen_mail[bin_index].columnmeans2.clear();
+						std::vector< std::vector<int> >().swap(g.p);
+						std::vector< std::vector<int> >().swap(g.not_O_j);
+						std::vector< std::vector<int> >().swap(g.not_O_i);
+						std::vector< std::vector<int> >().swap(allgen_mail[bin_index].p);
+						std::vector< std::vector<int> >().swap(allgen_mail[bin_index].not_O_j);
+						std::vector< std::vector<int> >().swap(allgen_mail[bin_index].not_O_i);
+						g.columnsum.clear();
+						g.columnsum2.clear();
+						g.columnmeans.clear();
+						g.columnmeans2.clear();
+						allgen_mail[bin_index].columnsum.clear();
+						allgen_mail[bin_index].columnsum2.clear();
+						allgen_mail[bin_index].columnmeans.clear();
+						allgen_mail[bin_index].columnmeans2.clear();
+					}
 				}
 			}
 		} // loop over bins
@@ -2038,6 +2076,7 @@ void genotype_stream_single_pass (string name) {
 
 
 	if (hetero_noise == true) {
+		ScopedTimer timer("hetero_noise");
 		MatrixXdr hetro_all_Uzb;
 		for (int env_index=0;env_index<Nenv;env_index++){
 			/// add hetero env noise
@@ -2055,7 +2094,7 @@ void genotype_stream_single_pass (string name) {
 			else
 				hetro_index=Nbin+Nenv+env_index;
 			for (int z_index=0;z_index<Nz;z_index++){
-				XXz.col(((hetro_index)*(Njack+1)*Nz)+(Njack*Nz)+z_index)=hetro_all_zb.col(z_index);		 
+				XXz.col(((hetro_index)*(Njack+1)*Nz)+(Njack*Nz)+z_index)=hetro_all_zb.col(z_index);
 				if(both_side_cov==true){
 					vec1=hetro_all_zb.col(z_index);
 					w1=covariate.transpose()*vec1;
@@ -2075,7 +2114,7 @@ void genotype_stream_single_pass (string name) {
 
 			yXXy(hetro_index,Njack)=(scaled_pheno.array()*scaled_pheno.array()).sum();
 			len.push_back(1);
-		} 
+		}
 	}
 
 	cout<<"Size of bins :"<<endl;
@@ -2099,26 +2138,29 @@ void genotype_stream_single_pass (string name) {
 	else
 		Nbin = Nbin + nongen_Nbin;
 
-	for(int bin_index = 0; bin_index < Nbin; bin_index++){
-		for(int jack_index = 0; jack_index < Njack; jack_index++){
-			for (int z_index = 0; z_index < Nz; z_index++){
-				MatrixXdr v1 = XXz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index);
-				MatrixXdr v2 = XXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index);
-				XXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = v1-v2;
-				if(both_side_cov == true){
-					v1 = XXUz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index);
-					v2 = XXUz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index);
-					XXUz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = v1-v2;
+	{
+		ScopedTimer timer_block("substract");
+		for(int bin_index = 0; bin_index < Nbin; bin_index++){
+			for(int jack_index = 0; jack_index < Njack; jack_index++){
+				for (int z_index = 0; z_index < Nz; z_index++){
+					MatrixXdr v1 = XXz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index);
+					MatrixXdr v2 = XXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index);
+					XXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = v1-v2;
+					if(both_side_cov == true){
+						v1 = XXUz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index);
+						v2 = XXUz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index);
+						XXUz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = v1-v2;
 
-					v1 = UXXz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index);
-					v2 = UXXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index);
-					UXXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = v1-v2;
-				}    
+						v1 = UXXz.col((bin_index*(Njack+1)*Nz)+(Njack*Nz)+z_index);
+						v2 = UXXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index);
+						UXXz.col((bin_index*(Njack+1)*Nz)+(jack_index*Nz)+z_index) = v1-v2;
+					}
+				}
+				yXXy(bin_index,jack_index) = yXXy(bin_index,Njack)-yXXy(bin_index,jack_index);
 			}
-			yXXy(bin_index,jack_index) = yXXy(bin_index,Njack)-yXXy(bin_index,jack_index);
 		}
+		//// all XXy and yXXy and contributions of every jackknife subsamples  were computed till this line.
 	}
-	//// all XXy and yXXy and contributions of every jackknife subsamples  were computed till this line.
 
 	/// normal equations LHS
 	MatrixXdr  A_trs(Nbin,Nbin);
@@ -2166,7 +2208,7 @@ void genotype_stream_single_pass (string name) {
 
 
 	for (jack_index = 0; jack_index <= Njack ; jack_index ++){
-		ScopedTimer timer_trace("trace_assembly");
+		ScopedTimer timer_trace("trace_estimation");
 		for(int k = 0; k < Nbin; k++)
 			if( jack_index < Njack && len[k] == jack_bin[jack_index][k])
 				jack_bin[jack_index][k] = 0;
@@ -2175,9 +2217,9 @@ void genotype_stream_single_pass (string name) {
 			b_trk(i,0) = Nindv_mask;
 			// CHANGE (2/17)
 			int sum_num_nongen_bin = 0;
-			if (hetero_noise == true) 
+			if (hetero_noise == true)
 				sum_num_nongen_bin = nongen_Nbin + Nenv;
-			else 
+			else
 				sum_num_nongen_bin = nongen_Nbin;
 
 			if(i>=(Nbin-sum_num_nongen_bin) ){
@@ -2201,8 +2243,8 @@ void genotype_stream_single_pass (string name) {
 			if(both_side_cov==true){
 				B1=XXz.block(0,(i*(Njack+1)*Nz)+(jack_index*Nz),Nindv,Nz);
 				C1=B1.array()*all_Uzb.array();
-				C2=C1.colwise().sum();	
-				tk_res=C2.sum();  
+				C2=C1.colwise().sum();
+				tk_res=C2.sum();
 
 				if(jack_index==Njack)
 					tk_res=tk_res/len[i]/Nz;
@@ -2276,7 +2318,7 @@ void genotype_stream_single_pass (string name) {
 
 		MatrixXdr herit;
 		{
-			ScopedTimer timer("solve_normal_equations");
+			ScopedTimer timer("linear_solve");
 			herit = X_l.fullPivHouseholderQr().solve(Y_r);
 		}
 
@@ -2320,7 +2362,7 @@ void genotype_stream_single_pass (string name) {
 					point_est_adj_gxe(i,0)=point_est(i,0)*NC;
 				else
 					point_est_adj_gxe(i,0)=point_est(i,0)*b_trk(i,0);
-			} 
+			}
 		}else{
 			for(int i=0;i<(Nbin+1);i++)
 				jack(i,jack_index)=herit(i,0);
@@ -2341,9 +2383,9 @@ void genotype_stream_single_pass (string name) {
 
 // Regress covariates from phenotype
 // If no covariates are provided, center phenotype
-//  
+//
 void regress_covariates () {
-	ScopedTimer timer_regcov("regress_covariates");
+	ScopedTimer timer_regcov("covariate_regression");
 	if (verbose >= 3) {
 		cout << "In regress_covariates" << endl;
 	}
@@ -2429,14 +2471,15 @@ void regress_covariates () {
 }
 
 // Read .bim, .pheno, .env, .fam, .annot, .cov file.
-void read_auxillary_files () { 
+void read_auxillary_files () {
+	ScopedTimer timer_fileio("file_io");
 
 	// Read bim file to count number of SNPs
 	string geno_name = command_line_opts.GENOTYPE_FILE_PATH;
 	std::stringstream f1;
 	f1 << geno_name << ".bim";
 
-	if (jack_scheme == 1|| jack_scheme == 2){ 
+	if (jack_scheme == 1|| jack_scheme == 2){
 		Nsnp = get_number_of_snps (f1.str());
 		step_size = Nsnp / Njack;
 		step_size_rem = Nsnp%Njack;
@@ -2456,13 +2499,13 @@ void read_auxillary_files () {
 	f0 << geno_name << ".fam";
 	string name_fam = f0.str();
 	int fam_lines = count_fam (name_fam);
-	
+
 	// Read phenotype and save the number of indvs
 	string filename = command_line_opts.PHENOTYPE_FILE_PATH;
 
 	if (use_dummy){
 		Nindv = fam_lines;
-	}	
+	}
 	else{
 		Nindv = count_pheno (filename);
 		read_pheno (Nindv, filename);
@@ -2485,7 +2528,7 @@ void read_auxillary_files () {
 		Nenv = 0;
 		hetero_noise = false;
 	} else {
-		//Read environment file 
+		//Read environment file
 		std::string envfile = command_line_opts.ENV_FILE_PATH;
 		Nenv = read_env (Nindv, envfile);
 	}
@@ -2525,24 +2568,24 @@ void read_auxillary_files () {
 
 	xsumfilepath = command_line_opts.XSUM_FILE_PATH;
 	if(xsumfilepath != "" ){
-		use_summary_genotypes = true;	
+		use_summary_genotypes = true;
 		string xsum_path = xsumfilepath + ".xsum";
 		string wgxsum_path = xsumfilepath + ".wgxsum";
 		xsum_ifs.open(xsum_path.c_str(), std::ios_base::in);
-		if (!xsum_ifs.is_open()) {	
+		if (!xsum_ifs.is_open()) {
 			cerr << "Error reading file "<< xsum_path <<endl;
 			exit(1);
 		}
 		xsum_ifs.close();
 
 		wgxsum_ifs.open(wgxsum_path.c_str(), std::ios_base::in);
-		if (!wgxsum_ifs.is_open()) {	
+		if (!wgxsum_ifs.is_open()) {
 			cerr << "Error reading file "<< wgxsum_path <<endl;
 			exit(1);
 		}
 		wgxsum_ifs.close();
 
-	}	
+	}
 }
 
 void print_results () {
@@ -2591,9 +2634,9 @@ void print_results () {
 
 	cout << "OUTPUT: " << endl << "Variance components: " << endl;
 	outfile << "OUTPUT: " << endl << "Variance components: " << endl;
-	if (verbose >= 3) { 
+	if (verbose >= 3) {
 		cout << "gen_Nbin = " << gen_Nbin << "\tT_Nbin = " << T_Nbin << endl;
-	}		
+	}
 	for (int j = 0 ; j < T_Nbin ; j++){
 		if(j < gen_Nbin){
 			cout << "Sigma^2_g[" << j<<"] : " << point_est(j,0) << "  SE : " << point_se(j,0) << endl;
@@ -2827,14 +2870,14 @@ void print_results () {
 					her_per_snp(i,0)+=her_per_snp_inbin(j,0);
 				if((annot_bool[i][gen_Nbin + j]==1) && (Annot_x_E == true))
 					her_per_snp(i,1)+=her_per_snp_inbin(gen_Nbin + j,0);
-			}        
+			}
 			if(k == Njack){
 				for(int j = 0 ; j < gen_Nbin ; j++){
 					if(annot_bool[i][j]==1)
 						point_her_cat_ldsc(j,0)+=her_per_snp(i,0);
 					if((annot_bool[i][gen_Nbin + j]==1) && (Annot_x_E == true))
 						point_her_cat_ldsc(gen_Nbin + j,0)+=her_per_snp(i,1);
-				}                
+				}
 			}else{
 				int temp = i / step_size;
 				if(temp>=Njack)
@@ -2844,8 +2887,8 @@ void print_results () {
 						her_cat_ldsc(j,k)+=her_per_snp(i,0);
 					if((annot_bool[i][gen_Nbin + j]==1) && (temp != k) && (Annot_x_E == true))
 						her_cat_ldsc(gen_Nbin + j,k)+=her_per_snp(i,1);
-				}                   
-			}     
+				}
+			}
 		}
 	}
 
@@ -2967,7 +3010,7 @@ void init_params () {
 	jack_scheme = command_line_opts.jack_scheme;
 	Njack = command_line_opts.jack_number;
 	jack_size = command_line_opts.jack_size;
-	jack_size *= 1e6; 
+	jack_size *= 1e6;
 
 	memeff = command_line_opts.memeff;
 	opt1 = command_line_opts.opt1;
@@ -2979,7 +3022,7 @@ void init_params () {
 	if (command_line_opts.exannot == true)
 		Annot_x_E = true;
 	nthreads = command_line_opts.nthreads;
-	
+
 	cov_add_intercept = command_line_opts.cov_add_intercept;
 	use_ysum = command_line_opts.use_ysum;
 	keep_xsum = command_line_opts.keep_xsum;
@@ -3004,17 +3047,18 @@ int main(int argc, char const *argv[]){
     long starttime = now.tv_sec * UMILLION + now.tv_usec;
 
 	parse_args (argc,argv);
+	Profiler::instance().start("root");
 	init_params ();
 
 	read_auxillary_files ();
 
-	if (gen_by_env == true) {    
+	if (gen_by_env == true) {
 		///mask out indv with missingness from Enviro
 		Enviro = Enviro.array().colwise() * mask.col(0).array();
 	}
 	//define random vector z's
 	{
-	ScopedTimer timer_rng("random_vector_init");
+	ScopedTimer timer_rng("initialize");
 	all_zb = MatrixXdr::Random (Nindv, Nz);
 
 	if (seed == -1) {
@@ -3032,13 +3076,13 @@ int main(int argc, char const *argv[]){
 	for (int i = 0 ; i < Nz ; i++)
 		for(int j = 0 ; j < Nindv ; j++)
 			all_zb(j,i) = z_vec();
-	
+
 	// fill in dummy (for trace summaries)
 	if (use_dummy)
 		dummy_pheno(Nindv, z_vec);
 
 	cout << "Regressing covariates" << endl;
-	regress_covariates ();	
+	regress_covariates ();
 
 	for (int i = 0 ; i < Nz ; i++)
 		for(int j = 0 ; j < Nindv ; j++)
@@ -3053,7 +3097,7 @@ int main(int argc, char const *argv[]){
 			all_Uzb.col(j) = w3;
 		}
 	}
-	} // end random_vector_init timer scope
+	} // end initialize timer scope
 
 	if(Annot_x_E == true){
 		nongen_Nbin = Nenv * Nbin;
@@ -3067,7 +3111,7 @@ int main(int argc, char const *argv[]){
 	}
 
 
-	// XXz : Nindv X (Nbins * Nz * 2): 
+	// XXz : Nindv X (Nbins * Nz * 2):
 	// First half of columns has the computation from the current jackknife block.
 	// Last half of columns has the computation from the whole genome.
 	if(hetero_noise == true) {
@@ -3076,7 +3120,7 @@ int main(int argc, char const *argv[]){
 		T_Nbin = Nbin + nongen_Nbin;
 	}
 
-	if (memeff) { 
+	if (memeff) {
 		XXz = MatrixXdr::Zero(Nindv, T_Nbin * Nz * 2);
 
 		if(both_side_cov == true){
@@ -3098,7 +3142,7 @@ int main(int argc, char const *argv[]){
 	if (!use_ysum)
 		jack_yXXy = MatrixXdr::Zero(T_Nbin, Njack);
 
-	if(use_mailman == true) 
+	if(use_mailman == true)
 		allgen_mail.resize(Nbin);
 	else
 		allgen.resize(Nbin);
@@ -3123,7 +3167,7 @@ int main(int argc, char const *argv[]){
 	cout << endl;
 	cout << "Reading genotypes ..." << endl;
 
-	
+
 	//CHANGE(03/05): add trace summary files. input to -o is now just the prefix (all output file endings are fixed to .log)
 	if (trace){
 		print_trace ();
@@ -3134,7 +3178,7 @@ int main(int argc, char const *argv[]){
 	if (memeff) {
 
         // In memory-efficient version, pass 2 is common
-        // Setting opt2 = 1: makes Pass 1 even more efficient 
+        // Setting opt2 = 1: makes Pass 1 even more efficient
         //
 		if (opt2){
 			genotype_stream_pass_mem_efficient (name); // flexible read block size
@@ -3154,6 +3198,9 @@ int main(int argc, char const *argv[]){
     double elapsed = endtime - starttime;
     elapsed /= 1.e6;
     cout << "GENIE ran successfully. Time elapsed = " << elapsed << " seconds " << endl;
+
+	// Stop root timer before dumping profile data
+	Profiler::instance().stop("root");
 
 	// Output profiling data if requested
 	if (command_line_opts.profile_enabled) {

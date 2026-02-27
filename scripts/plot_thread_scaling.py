@@ -64,7 +64,7 @@ def plot_thread_scaling(df: pd.DataFrame, output_path: Path = None,
         threads = sorted(ds_df["threads"].unique())
         operations = sorted(ds_df["name"].unique())
 
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        fig, axes = plt.subplots(1, 2, figsize=(14, 8))
         fig.suptitle(f"Thread Scaling — {ds}", fontsize=13)
 
         colors = [(*c[:3], OPACITY)
@@ -77,18 +77,20 @@ def plot_thread_scaling(df: pd.DataFrame, output_path: Path = None,
             for t in threads:
                 mask = (ds_df["threads"] == t) & (ds_df["name"] == op)
                 if mask.any():
-                    times.append(ds_df.loc[mask, "total_seconds"].values[0])
+                    times.append(ds_df.loc[mask, "self_seconds"].values[0])
                 else:
                     times.append(np.nan)
             ax1.plot(threads, times, "o-", label=op, color=colors[i])
 
         ax1.set_xlabel("Threads")
-        ax1.set_ylabel("Time (seconds)")
+        ax1.set_ylabel("Self-Time (seconds)")
         ax1.set_title("Absolute Time vs Thread Count")
         ax1.set_xscale("log", base=2)
         ax1.set_xticks(threads)
         ax1.set_xticklabels(threads)
-        ax1.legend(fontsize=7, ncol=max(1, len(operations) // 6))
+        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
+                fontsize=7, ncol=max(1, len(operations) // 6))
+
         ax1.grid(True, alpha=0.3)
 
         # Plot 2: Speedup vs threads (relative to single-threaded)
@@ -98,7 +100,7 @@ def plot_thread_scaling(df: pd.DataFrame, output_path: Path = None,
             for t in threads:
                 mask = (ds_df["threads"] == t) & (ds_df["name"] == op)
                 if mask.any():
-                    times.append(ds_df.loc[mask, "total_seconds"].values[0])
+                    times.append(ds_df.loc[mask, "self_seconds"].values[0])
                 else:
                     times.append(np.nan)
 
@@ -116,7 +118,8 @@ def plot_thread_scaling(df: pd.DataFrame, output_path: Path = None,
         ax2.set_xscale("log", base=2)
         ax2.set_xticks(threads)
         ax2.set_xticklabels(threads)
-        ax2.legend(fontsize=7, ncol=max(1, len(operations) // 6))
+        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
+                fontsize=7, ncol=max(1, len(operations) // 6))
         ax2.grid(True, alpha=0.3)
 
         plt.tight_layout()
@@ -157,7 +160,7 @@ def main():
         type=str,
         default=None,
         help="Comma-separated list of operation names to include (e.g., "
-             "matvec_Xv,jackknife_block)"
+             "Xv,jackknife)"
     )
     args = parser.parse_args()
 

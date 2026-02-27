@@ -7,42 +7,84 @@
 #include <iomanip>
 #include <algorithm>
 
-// Thread-local storage for active timers
+// Thread-local storage for active timers and timer stack
 thread_local std::unordered_map<std::string, Profiler::TimerState> Profiler::thread_timers_;
+thread_local std::vector<std::string> Profiler::timer_stack_;
+
+std::string Profiler::build_path(const std::vector<std::string>& stack) {
+    std::string path;
+    for (size_t i = 0; i < stack.size(); ++i) {
+        if (i > 0) path += ':';
+        path += stack[i];
+    }
+    return path;
+}
 
 void Profiler::start(const char* name) {
-    std::string key(name);
-    auto& state = thread_timers_[key];
+    // Push leaf name onto stack and build full path
+    timer_stack_.push_back(std::string(name));
+    std::string full_path = build_path(timer_stack_);
+
+    auto& state = thread_timers_[full_path];
     state.start_time = std::chrono::steady_clock::now();
     state.active = true;
 }
 
 void Profiler::stop(const char* name) {
     auto stop_time = std::chrono::steady_clock::now();
-    std::string key(name);
 
-    auto it = thread_timers_.find(key);
+    // Build the full path from the current stack (should end with name)
+    std::string full_path = build_path(timer_stack_);
+
+    auto it = thread_timers_.find(full_path);
     if (it == thread_timers_.end() || !it->second.active) {
-        // Timer wasn't started or already stopped
+        // Timer wasn't started or already stopped; still pop the stack
+        if (!timer_stack_.empty()) timer_stack_.pop_back();
         return;
     }
 
     // Calculate elapsed time
-    auto elapsed = std::chrono::duration<double>(stop_time - it->second.start_time).count();
+    double elapsed = std::chrono::duration<double>(stop_time - it->second.start_time).count();
     it->second.active = false;
+
+    // Pop the leaf name from the stack
+    timer_stack_.pop_back();
+
+    // Build parent's full path (the stack after popping)
+    std::string parent_path = build_path(timer_stack_);
 
     // Aggregate into shared entries (thread-safe)
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        auto& entry = entries_[key];
-        entry.name = key;
+        auto& entry = entries_[full_path];
+        entry.name = full_path;
         entry.calls++;
         entry.total_seconds += elapsed;
+
+        // Add elapsed time to parent's children_seconds
+        if (!parent_path.empty()) {
+            auto& parent_entry = entries_[parent_path];
+            parent_entry.name = parent_path;
+            parent_entry.children_seconds += elapsed;
+        }
     }
 }
 
 void Profiler::add_bytes(const char* name, uint64_t bytes) {
-    std::string key(name);
+    // Build full path from current stack + leaf name if the leaf matches the
+    // top of the stack (i.e., we're inside that timer). Otherwise, build path
+    // using the stack as-is plus the provided name.
+    // Since add_bytes is called while the timer is active, the leaf should
+    // already be on the stack. Use the current full path.
+    std::string key;
+    if (!timer_stack_.empty() && timer_stack_.back() == std::string(name)) {
+        key = build_path(timer_stack_);
+    } else {
+        // Leaf not on stack — build path with stack + leaf
+        std::vector<std::string> tmp = timer_stack_;
+        tmp.push_back(std::string(name));
+        key = build_path(tmp);
+    }
     std::lock_guard<std::mutex> lock(mutex_);
     auto& entry = entries_[key];
     entry.name = key;
@@ -58,10 +100,12 @@ std::vector<ProfileEntry> Profiler::entries() const {
         result.push_back(pair.second);
     }
 
-    // Sort by total time descending
+    // Sort: "root" first, then by self_seconds descending
     std::sort(result.begin(), result.end(),
               [](const ProfileEntry& a, const ProfileEntry& b) {
-                  return a.total_seconds > b.total_seconds;
+                  if (a.name == "root") return true;
+                  if (b.name == "root") return false;
+                  return a.self_seconds() > b.self_seconds();
               });
 
     return result;
@@ -86,7 +130,6 @@ void dump_profile(const std::vector<ProfileEntry>& entries, const std::string& f
 
     // Determine format from extension
     bool is_json = (filename.size() >= 5 && filename.substr(filename.size() - 5) == ".json");
-    bool is_csv = (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".csv");
 
     if (is_json) {
         // JSON format
@@ -96,7 +139,9 @@ void dump_profile(const std::vector<ProfileEntry>& entries, const std::string& f
             out << "  {\n";
             out << "    \"name\": \"" << entry.name << "\",\n";
             out << "    \"calls\": " << entry.calls << ",\n";
-            out << "    \"total_seconds\": " << std::fixed << std::setprecision(6) << entry.total_seconds;
+            out << "    \"total_seconds\": " << std::fixed << std::setprecision(6) << entry.total_seconds << ",\n";
+            out << "    \"self_seconds\": " << std::fixed << std::setprecision(6) << entry.self_seconds() << ",\n";
+            out << "    \"children_seconds\": " << std::fixed << std::setprecision(6) << entry.children_seconds;
             if (entry.total_bytes > 0) {
                 out << ",\n    \"total_bytes\": " << entry.total_bytes;
             }
@@ -109,13 +154,15 @@ void dump_profile(const std::vector<ProfileEntry>& entries, const std::string& f
         out << "]\n";
     } else {
         // CSV format (default)
-        out << "name,calls,total_seconds,avg_seconds,total_bytes\n";
+        out << "name,calls,total_seconds,self_seconds,children_seconds,avg_self_seconds,total_bytes\n";
         for (const auto& entry : entries) {
-            double avg = (entry.calls > 0) ? (entry.total_seconds / entry.calls) : 0.0;
+            double avg_self = (entry.calls > 0) ? (entry.self_seconds() / entry.calls) : 0.0;
             out << entry.name << ","
                 << entry.calls << ","
                 << std::fixed << std::setprecision(6) << entry.total_seconds << ","
-                << std::fixed << std::setprecision(6) << avg << ","
+                << std::fixed << std::setprecision(6) << entry.self_seconds() << ","
+                << std::fixed << std::setprecision(6) << entry.children_seconds << ","
+                << std::fixed << std::setprecision(6) << avg_self << ","
                 << entry.total_bytes << "\n";
         }
     }

@@ -10,11 +10,14 @@ struct ProfileEntry {
     std::string name;
     uint64_t calls;
     double total_seconds;
-    uint64_t total_bytes;  // Optional: for I/O tracking
+    double children_seconds;  // time spent in direct children
+    uint64_t total_bytes;     // Optional: for I/O tracking
 
-    ProfileEntry() : calls(0), total_seconds(0.0), total_bytes(0) {}
-    ProfileEntry(const std::string& n, uint64_t c, double t, uint64_t b = 0)
-        : name(n), calls(c), total_seconds(t), total_bytes(b) {}
+    ProfileEntry() : calls(0), total_seconds(0.0), children_seconds(0.0), total_bytes(0) {}
+    ProfileEntry(const std::string& n, uint64_t c, double t, double ch = 0.0, uint64_t b = 0)
+        : name(n), calls(c), total_seconds(t), children_seconds(ch), total_bytes(b) {}
+
+    double self_seconds() const { return total_seconds - children_seconds; }
 };
 
 #ifdef GENIE_PROFILE
@@ -31,13 +34,13 @@ public:
         return profiler;
     }
 
-    // Start timing a named region
+    // Start timing a named region (leaf name; full path built from stack)
     void start(const char* name);
 
-    // Stop timing a named region
+    // Stop timing the current region (leaf name used for validation)
     void stop(const char* name);
 
-    // Add bytes transferred (for I/O tracking)
+    // Add bytes transferred (for I/O tracking, uses current stack + leaf)
     void add_bytes(const char* name, uint64_t bytes);
 
     // Get all profile entries
@@ -54,18 +57,22 @@ private:
     Profiler(const Profiler&) = delete;
     Profiler& operator=(const Profiler&) = delete;
 
-    // Thread-local storage for start times
+    // Thread-local storage for start times (keyed by full path)
     struct TimerState {
         std::chrono::time_point<std::chrono::steady_clock> start_time;
         bool active;
         TimerState() : active(false) {}
     };
 
+    // Build colon-separated path from stack
+    static std::string build_path(const std::vector<std::string>& stack);
+
     // Map from region name to aggregated stats
     mutable std::mutex mutex_;
     std::unordered_map<std::string, ProfileEntry> entries_;
 
-    // Thread-local map from region name to start time
+    // Thread-local timer stack (leaf names) and start-time map (keyed by full path)
+    static thread_local std::vector<std::string> timer_stack_;
     static thread_local std::unordered_map<std::string, TimerState> thread_timers_;
 };
 
