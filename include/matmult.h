@@ -3,6 +3,7 @@
 
 
 #include "genotype.h"
+#include "threadpool.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Core>
@@ -26,6 +27,7 @@ class MatMult {
 	bool missing; // = false;
 	bool fast_mode; // = true;
 	int nthreads = 1; // = 1;
+	int Nindv_alloc = 0;  // allocated Nindv for y_e (to detect reuse)
 
 	// How to batch columns:
 	int blocksize = 0;  // k
@@ -37,13 +39,18 @@ class MatMult {
 	double **partialsums = nullptr;
 	double *sum_op = nullptr;
 
+	// Thread pool for reuse across multiply calls
+	ForkJoinPool *pool = nullptr;
+
 	// Intermediate computations in E-step.
-	double **yint_e = nullptr;  // Size = 3^(log_3(n)) * k
-	double ***y_e = nullptr;    // n X k
+	double **yint_e = nullptr;  // Size = nthreads X 3^(log_3(n)) * k
+	double ***y_e = nullptr;    // nthreads X n X k (pointer arrays)
+	double **y_e_data = nullptr; // nthreads contiguous blocks backing y_e
 
 	// Intermediate computations in M-step.
 	double **yint_m = nullptr;  // Size = nthreads X 3^(log_3(n)) * k
-	double ***y_m = nullptr;    // nthreads X log_3(n) X k
+	double ***y_m = nullptr;    // nthreads X log_3(n) X k (pointer arrays)
+	double **y_m_data = nullptr; // nthreads contiguous blocks backing y_m
 
 	MatMult() {}
   	~MatMult();
@@ -65,8 +72,8 @@ class MatMult {
 			int xnthreads,
 			int xk);
 
-	void multiply_y_pre_fast_thread(int begin, int end, MatrixXdr &op, int Ncol_op, double *yint_m, double **y_m, double *partialsums, MatrixXdr &res);
-	void multiply_y_post_fast_thread(int begin, int end, MatrixXdr &op, int Ncol_op, double *yint_e, double **y_e, double *partialsums);
+	void multiply_y_pre_fast_thread(int begin, int end, MatrixXdr &op, int Ncol_op, double *yint_m, double **y_m, double *partialsums, MatrixXdr &res, double *y_m_data_flat);
+	void multiply_y_post_fast_thread(int begin, int end, MatrixXdr &op, int Ncol_op, double *yint_e, double **y_e, double *partialsums, double *y_e_data_flat);
 
 	/*
 	 * Compute C = Y E 
@@ -101,6 +108,18 @@ class MatMult {
 	void multiply_y_pre(MatrixXdr &op, int Ncol_op, MatrixXdr &res, bool subtract_means);
 
 	void clean_up();
+
+	// Reset for reuse: reuses existing buffers if dimensions match
+	void reset(genotype &xg,
+			MatrixXdr &xgeno_matrix,
+			bool xdebug,
+			bool xvar_normalize,
+			bool xmemory_efficient,
+			bool xmissing,
+			bool xfast_mode,
+			int xnthreads,
+			int xk);
+
 };
 
 
