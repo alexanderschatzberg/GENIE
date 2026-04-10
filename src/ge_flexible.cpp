@@ -516,23 +516,13 @@ void genotype_stream_pass_mem_efficient (string name){
 	for (int jack_index = 0 ; jack_index < Njack ; jack_index++){
 		ScopedTimer timer_block("jackknife");
 
-		if (hetero_noise == true) {
-			output_XXz = MatrixXdr::Zero(Nindv,T_Nbin * Nz);
-
-			if(both_side_cov == true){
-				output_XXUz = MatrixXdr::Zero(Nindv, T_Nbin * Nz);
-			}
-			output_yXXy = MatrixXdr::Zero(T_Nbin,1);
-		} else {
+		if (hetero_noise == false)
 			T_Nbin = Nbin + nongen_Nbin;
 
-			output_XXz = MatrixXdr::Zero(Nindv, T_Nbin * Nz);
-
-			if(both_side_cov == true){
-				output_XXUz = MatrixXdr::Zero(Nindv, T_Nbin * Nz);
-			}
-			output_yXXy = MatrixXdr::Zero(T_Nbin, 1);
-		}
+		output_XXz.setZero();
+		if(both_side_cov == true)
+			output_XXUz.setZero();
+		output_yXXy.setZero();
 
 		int jack_Nsnp = jack_block_size [jack_index];
 		int read_Nsnp = jack_Nsnp > mem_Nsnp ? mem_Nsnp: jack_Nsnp;
@@ -690,13 +680,13 @@ void genotype_stream_pass_mem_efficient (string name){
 				}
 
 				// Setup data structures for mailman
-				mm = MatMult(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
+				mm.reset(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
 
 				if (!use_summary_genotypes){
 				tmpoutput_XXz = compute_XXz(num_snp, all_zb);
 
 				for (int z_index = 0 ; z_index < Nz ; z_index++)
-					output_XXz.col(bin_index * Nz + z_index) = output_XXz.col(bin_index * Nz + z_index) + tmpoutput_XXz.col(z_index);
+					output_XXz.col(bin_index * Nz + z_index) += tmpoutput_XXz.col(z_index);
 
 				if (verbose >= 3) {
 					cout << "all_zb = " << all_zb.rows() << "," << all_zb.cols() << "\t" << all_zb.sum () << endl;
@@ -789,7 +779,7 @@ void genotype_stream_pass_mem_efficient (string name){
 				if (both_side_cov == true){
 					output = compute_XXUz(num_snp);
 					for (int z_index = 0 ; z_index < Nz ; z_index++)
-						output_XXUz.col(bin_index * Nz + z_index) = output_XXUz.col(bin_index * Nz + z_index) + output.col(z_index);
+						output_XXUz.col(bin_index * Nz + z_index) += output.col(z_index);
 
 					if (opt1 && block_index == num_blocks - 1) {
 						MatrixXdr tmpoutput = output_XXUz.block (0, bin_index * Nz, output_XXUz.rows(), Nz);
@@ -838,7 +828,7 @@ void genotype_stream_pass_mem_efficient (string name){
 					}
 				}
 
-				mm.clean_up();
+				// mm buffers reused by reset() — no clean_up needed
 				if(use_mailman == true){
 					delete[] sum_op;
 					delete[] partialsums;
@@ -1209,7 +1199,7 @@ void genotype_stream_pass (string name, int pass_num){
 					gen = allgen[bin_index].gen;
 				}
 
-				mm = MatMult(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
+				mm.reset(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
 				output = compute_XXz(num_snp, all_zb);
 
 				if (verbose >= 2)
@@ -1412,7 +1402,7 @@ void genotype_stream_pass (string name, int pass_num){
 
 			if (opt1 && pass_num == 2){
 			} else {
-				mm.clean_up();
+				// mm buffers reused by reset() — no clean_up needed
 				if(use_mailman == true){
 
 					delete[] sum_op;
@@ -1899,7 +1889,7 @@ void genotype_stream_single_pass (string name) {
 						gen = allgen[bin_index].gen;
 
 					}
-					mm = MatMult(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
+					mm.reset(g, gen, debug, var_normalize, memory_efficient, missing, use_mailman, nthreads, Nz);
 				}
 
 				{
@@ -2038,7 +2028,7 @@ void genotype_stream_single_pass (string name) {
 
 				{
 					ScopedTimer timer("matrix_cleanup");
-					mm.clean_up();
+					// mm buffers reused by reset() — no clean_up needed
 					if(use_mailman==true){
 						delete[] sum_op;
 						delete[] partialsums;
