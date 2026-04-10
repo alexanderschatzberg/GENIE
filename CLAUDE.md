@@ -54,7 +54,7 @@ When built without `-DGENIE_PROFILE=ON`, all profiling code compiles to zero-ove
 - Thread-local start times with atomic aggregation
 - Instrumented in: `src/matmult.cpp`, `src/ge_flexible.cpp`, `src/genotype.cpp`, `src/auxillary.cpp`
 
-See `PROFILE.md` for detailed usage guide and `TEST_PROFILING.md` for testing instructions.
+See `PROFILE.md` for detailed usage guide.
 
 ### Debug/Sanitizer Flags
 
@@ -100,7 +100,23 @@ python test/test.py
 
 GENIE can be built as a Python package (`rhe`) using scikit-build-core. The package exposes Python wrappers for running GENIE from Python scripts.
 
+```bash
+pip install .              # install locally
+pip install -e . --no-build-isolation  # editable install for development
+```
+
+## CI
+
+GitHub Actions workflows in `.github/workflows/`:
+- **test_ubuntu.yml**: Tests on Ubuntu 22.04 with clang++/g++ in Debug/Release, plus Python module tests
+- **test_macos.yml**: Tests on macOS 13/14
+- **build_python_wheels.yml**: Builds binary wheels via cibuildwheel; publishes to PyPI on release
+
 ## Architecture
+
+### Dependencies
+
+Eigen3 is vendored in `include/Eigen/` (header-only linear algebra library). No external package manager dependencies beyond pthreads.
 
 ### Core Components
 
@@ -139,12 +155,12 @@ GENIE can be built as a Python package (`rhe`) using scikit-build-core. The pack
 ### Main Executables
 
 **GENIE Main** (`src/ge_flexible.cpp`)
-- Primary entry point for standard GENIE analysis
+- Primary entry point and the only executable built by `CMakeLists.txt`
 - Supports models: `G`, `G+GxE`, `G+GxE+NxE`
 - Uses stochastic trace estimation with random vectors (`-k` parameter)
 - Jackknife-based variance estimation (`-jn` parameter)
 
-**GENIE Variants**
+**GENIE Variants** (source files exist but are not built by default CMakeLists.txt)
 - `ge_flexible_multi_pheno.cpp`: Multiple phenotype support
 - `ge_hetro_flexible.cpp`, `ge_hetro_flexible_multi_pheno.cpp`: Heterogeneous noise models
 - `ge_mem_flexible.cpp`: Memory-efficient version for large annotation files
