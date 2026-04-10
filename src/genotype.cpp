@@ -507,10 +507,41 @@ int simulate_geno_from_random (float p_j, std::mt19937 &seedr){
 
 // Read specified numer of SNPs from bed file.
 // ifs: stream object associated with bed file.
+// Precomputed PLINK BED byte -> 4 genotype values lookup table
+// PLINK coding: 00->0, 01->missing(-1), 10->1, 11->2
+// After decoding: val-1, clamped to 0 if negative => 0->0, missing->0(placeholder), 1->0, 2->1, 3->2
+// Wait - the original code does: val--, val = (val<0)?0:val
+// So: 0->-1->0, 1(missing)->0->0, 2->1, 3->2
+// For missing (01), we return -1 to signal special handling
+static int bed_lookup[256][4];
+static bool bed_lookup_initialized = false;
+
+static void init_bed_lookup() {
+    if (bed_lookup_initialized) return;
+    for (int byte = 0; byte < 256; byte++) {
+        int g0 = (byte) & 3;
+        int g1 = (byte >> 2) & 3;
+        int g2 = (byte >> 4) & 3;
+        int g3 = (byte >> 6) & 3;
+        int genos[4] = {g0, g1, g2, g3};
+        for (int i = 0; i < 4; i++) {
+            int val = genos[i];
+            if (val == 1) {
+                bed_lookup[byte][i] = -1; // missing
+            } else {
+                val--;
+                bed_lookup[byte][i] = (val < 0) ? 0 : val;
+            }
+        }
+    }
+    bed_lookup_initialized = true;
+}
+
 // num_snp: number of SNPs to read
 void read_bed2 (std::istream& ifs, bool allow_missing, int num_snp)  {
 	char magic[3];
     set_metadata ();
+    init_bed_lookup();
 
 	gtype =  new unsigned char[ncol];
 
@@ -518,13 +549,6 @@ void read_bed2 (std::istream& ifs, bool allow_missing, int num_snp)  {
 		binary_read(ifs, magic);
 
 	int sum = 0;
-
-	// Note that the coding of 0 and 2 can get flipped relative to plink because plink uses allele frequency (minor)
-	// allele to code a SNP as 0 or 1.
-	// This flipping does not matter for results.
-	int y[4];
-
-//	int bin_pointer;
 
 	// for a given snp, the set of annotations (bins) that the SNP belongs to
 	vector<int> pointer_bins;
@@ -545,11 +569,7 @@ void read_bed2 (std::istream& ifs, bool allow_missing, int num_snp)  {
 
             for (int k = 0 ;k < ncol ; k++) {
                 unsigned char c = gtype [k];
-                // Extract PLINK genotypes
-                y[0] = (c)&mask2;
-                y[1] = (c>>2)&mask2;
-                y[2] = (c>>4)&mask2;
-                y[3] = (c>>6)&mask2;
+                const int *decoded = bed_lookup[c];
                 int j0 = k * unitsperword;
                 // Handle number of individuals not being a multiple of 4
                 int lmax = 4;
@@ -558,37 +578,29 @@ void read_bed2 (std::istream& ifs, bool allow_missing, int num_snp)  {
                     lmax = (lmax == 0)?4:lmax;
                 }
                 for ( int l = 0 ; l < lmax; l++){
-                    // j: index over individuals
                     int j = j0 + l ;
-                    // Extract  PLINK coded genotype and convert into 0/1/2
-                    // PLINK coding:
-                    // 00->0
-                    // 01->missing
-                    // 10->1
-                    // 11->2
-                    // val:  genotype
-                    int val = y[l];
-                    if(val == 1 && !allow_missing){
-                        // Impute by sampling from the distribution of genotype frequencies
+                    int val = decoded[l];
+                    if(val == -1 && !allow_missing){
+                        // Missing genotype: impute by sampling
                         val = simulate_geno_from_random(p_j, seedr);
                         val++;
                         val = (val == 1) ? 0 : val;
+                        val--;
+                        val = (val < 0) ? 0 : val;
+                    } else if (val == -1) {
+                        val = 0; // treat missing as 0 when allow_missing
                     }
-                    val-- ;
-                    val =  (val < 0 ) ? 0 :val ;
                     sum += val;
 
                     // Loop over all bins (=annotations) this SNP belong to
                     for(int bin_index = 0 ; bin_index < pointer_bins.size();bin_index++){
                         int bin_pointer = pointer_bins[bin_index];
 
-                        // snp_index: index over SNPs that depends on the bin being considered
                         int snp_index;
                         if(use_mailman == true){
                             snp_index = allgen_mail[bin_pointer].index;
                             int horiz_seg_no = snp_index / allgen_mail[bin_pointer].segment_size_hori;
                             allgen_mail[bin_pointer].p[horiz_seg_no][j] = 3 *allgen_mail[bin_pointer].p[horiz_seg_no][j]  + val;
-                            // computing sum for every snp to compute mean
                             allgen_mail[bin_pointer].columnsum[snp_index]+=val;
 
                         } else {
