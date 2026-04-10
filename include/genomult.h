@@ -26,11 +26,11 @@ extern MatrixXdr mask;
 extern MatrixXdr  all_Uzb;
 extern MatrixXdr res;
 
-double compute_yXXy (int num_snp, MatrixXdr vec);
+double compute_yXXy (int num_snp, const MatrixXdr &vec);
 double compute_yVXXVy(int num_snp);
-MatrixXdr  compute_XXz (int num_snp, MatrixXdr Zvec);
+MatrixXdr  compute_XXz (int num_snp, const MatrixXdr &Zvec);
 MatrixXdr  compute_XXUz (int num_snp);
 
-MatrixXdr compute_yVXXVy_multi(int num_snp, MatrixXdr vec, int cur_pheno_count);
-MatrixXdr compute_yXXy_multi (int num_snp, MatrixXdr vec, int cur_pheno_count);
+MatrixXdr compute_yVXXVy_multi(int num_snp, const MatrixXdr &vec, int cur_pheno_count);
+MatrixXdr compute_yXXy_multi (int num_snp, const MatrixXdr &vec, int cur_pheno_count);
 #endif
